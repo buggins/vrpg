@@ -186,9 +186,11 @@ xcopy ..\..\..\GamePlay\gameplay\res\ui res\ui\* /s /y /d</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\VRPG.cpp" />
+    <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\VRPG.h" />
+    <ClInclude Include="world.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

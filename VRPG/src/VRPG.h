@@ -56,7 +56,16 @@ private:
      */
     bool drawScene(Node* node);
 
+	Node * createCube(int x, int y, int z);
+
     Scene* _scene;
+	Node * _group1;
+	Node * _cubeNode;
+	Node * _cubeNode2;
+	Light* _light;
+	Node* _lightNode;
+	Mesh * _cubeMesh;
+	Node* _cameraNode;
     bool _wireframe;
 };
 
