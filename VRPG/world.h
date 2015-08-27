@@ -181,6 +181,24 @@ public:
 	~World() {
 
 	}
+	cell_t getCell(int x, int y, int z) {
+		int chunkx = x >> CHUNK_DX_SHIFT;
+		int chunkz = z >> CHUNK_DX_SHIFT;
+		Chunk * p = chunks.get(chunkx, chunkz);
+		if (!p)
+			return NO_CELL;
+		return p->get(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK);
+	}
+	void setCell(int x, int y, int z, cell_t value) {
+		int chunkx = x >> CHUNK_DX_SHIFT;
+		int chunkz = z >> CHUNK_DX_SHIFT;
+		Chunk * p = chunks.get(chunkx, chunkz);
+		if (!p) {
+			p = new Chunk();
+			chunks.set(chunkx, chunkz, p);
+		}
+		p->set(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK, value);
+	}
 };
 
 #endif WORLD_H_INCLUDED
