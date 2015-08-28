@@ -27,8 +27,8 @@ public:
 				cells[(z << CHUNK_DX_SHIFT) + x] = NO_CELL;
 	}
 	inline cell_t get(int x, int z) {
-		if (!this)
-			return NO_CELL;
+		//if (!this)
+		//	return NO_CELL;
 		return cells[(z << CHUNK_DX_SHIFT) + x];
 	}
 	inline void set(int x, int z, cell_t cell) {
@@ -50,8 +50,8 @@ public:
 				delete layers[i];
 	}
 	inline cell_t get(int x, int y, int z) {
-		if (!this)
-			return NO_CELL;
+		//if (!this)
+		//	return NO_CELL;
 		ChunkLayer * layer = layers[y & CHUNK_DY_MASK];
 		if (!layer)
 			return NO_CELL;
@@ -70,10 +70,10 @@ public:
 	}
 };
 
-typedef InfiniteArray<Chunk*, NULL, Chunk::dispose> ChunkStripe;
+typedef InfiniteArray<Chunk*, (Chunk*)NULL, Chunk::dispose> ChunkStripe;
 void disposeChunkStripe(ChunkStripe * p);
 
-typedef InfiniteArray<ChunkStripe*, NULL, disposeChunkStripe> ChunkStripes;
+typedef InfiniteArray<ChunkStripe*, (ChunkStripe*)NULL, disposeChunkStripe> ChunkStripes;
 
 struct ChunkMatrix {
 	int minx;

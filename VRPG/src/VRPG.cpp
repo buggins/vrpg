@@ -9,6 +9,8 @@ VRPG::VRPG()
 {
 }
 
+Material * createMaterial();
+
 static float face_vertices_south[] =
 {
 	-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
@@ -57,6 +59,16 @@ static float face_vertices_west[] =
 	-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 1.0
 };
 
+static int face_indexes[] =
+{
+    0, 1, 2, 2, 1, 3
+};
+
+static int face_indexes_back[] =
+{
+    0, 2, 1, 2, 3, 1
+};
+
 static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0) {
 	for (int i = 0; i < 4; i++) {
 		float * srcvertex = src + i * 8;
@@ -77,16 +89,21 @@ static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0
 static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0) {
 	// data is 8 comp * 4 vert floats
 	switch (face) {
-	case NORTH:
+    default:
+    case SOUTH:
+	//case NORTH:
 		fillFaceMesh(data, face_vertices_north, x0, y0, z0);
 		break;
-	case SOUTH:
+    case NORTH:
+	//case SOUTH:
 		fillFaceMesh(data, face_vertices_south, x0, y0, z0);
 		break;
-	case WEST:
+	case EAST:
+    //case WEST:
 		fillFaceMesh(data, face_vertices_west, x0, y0, z0);
 		break;
-	case EAST:
+	case WEST:
+    //case EAST:
 		fillFaceMesh(data, face_vertices_east, x0, y0, z0);
 		break;
 	case UP:
@@ -110,15 +127,16 @@ public:
 	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) {
 		int v0 = faceCount * 4;
 		faceCount++;
-		float * vptr = vertices.append(0.0f, 8 * 6);
+		float * vptr = vertices.append(0.0f, 8 * 4);
 		int * iptr = indexes.append(0, 6);
 		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
-		iptr[0] = v0 + 0;
-		iptr[1] = v0 + 1;
-		iptr[2] = v0 + 2;
-		iptr[3] = v0 + 2;
-		iptr[4] = v0 + 1;
-		iptr[5] = v0 + 3;
+        for (int i = 0; i < 6; i++)
+            iptr[i] = v0 + face_indexes[i];
+//        float vbuf[8*4];
+//        int ibuf[6];
+//        createFaceMesh(vbuf, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+//        for (int i = 0; i < 6; i++)
+//            ibuf[i] = v0 + face_indexes[i];
 	}
 	Mesh* createMesh() {
 		unsigned int vertexCount = faceCount * 4;
@@ -175,7 +193,12 @@ static Mesh* createCubeMesh(float size = 1.0f)
 	};
 	short indices[] =
 	{
-		0, 1, 2, 2, 1, 3, 4, 5, 6, 6, 5, 7, 8, 9, 10, 10, 9, 11, 12, 13, 14, 14, 13, 15, 16, 17, 18, 18, 17, 19, 20, 21, 22, 22, 21, 23
+		0, 1, 2, 2, 1, 3,
+        4, 5, 6, 6, 5, 7,
+        8, 9, 10, 10, 9, 11,
+        12, 13, 14, 14, 13, 15,
+        16, 17, 18, 18, 17, 19,
+        20, 21, 22, 22, 21, 23
 	};
 	unsigned int vertexCount = 24;
 	unsigned int indexCount = 36;
@@ -286,7 +309,7 @@ void VRPG::initialize()
 	SAFE_RELEASE(camera);
 
 	// Move the camera to look at the origin.
-	cameraNode->translate(15, 3, 15);
+	cameraNode->translate(12, 3, 12);
 	cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
@@ -321,7 +344,7 @@ void VRPG::initialize()
 	_group1->addChild(_cubeNode2);
 	SAFE_RELEASE(cubeMesh);
 
-	Node * _group2 = _scene->addNode("group2");
+	_group2 = _scene->addNode("group2");
 #if 0
 	int sz = 50;
 	for (int x = -sz; x <= sz; x++) {
@@ -340,7 +363,16 @@ void VRPG::initialize()
 	World * world = new World();
 
 	world->getCamPosition().pos = Vector3d(0, 3, 0);
+    world->getCamPosition().direction.set(EAST);
 
+    world->setCell(-5, 3, 5, 1);
+#if 0
+    world->setCell(0, 7, 0, 1);
+    world->setCell(5, 7, 0, 1);
+    world->setCell(5, 7, 5, 1);
+    world->setCell(-5, 7, -5, 1);
+    world->setCell(-5, 7, 5, 1);
+#else
 	for (int x = -10; x <= 10; x++)
 		for (int z = -10; z <= 10; z++) {
 			world->setCell(x, 0, z, 1);
@@ -352,6 +384,7 @@ void VRPG::initialize()
 		world->setCell(-10, 1, x, 3);
 		world->setCell(10, 1, x, 3);
 	}
+#endif
 	TestVisitor * visitor = new TestVisitor();
 	world->visitVisibleCells(world->getCamPosition(), visitor);
 	delete visitor;
@@ -384,6 +417,7 @@ void VRPG::update(float elapsedTime)
 	//_cubeNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
 	//_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
 	//_cubeNode2->rotateX(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
+    _group2->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 2000.0f * 180.0f));
 }
 
 void VRPG::render(float elapsedTime)
