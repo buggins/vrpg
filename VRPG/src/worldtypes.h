@@ -120,6 +120,9 @@ public:
 	Array() : _size(0), _length(0), _data(NULL) {
 
 	}
+	T * ptr(int index = 0) {
+		return _data + index;
+	}
 	void swap(Array & v) {
 		int tmp;
 		tmp = _size; _size = v._size; v._size = tmp;
@@ -143,6 +146,12 @@ public:
 			reserve(_size == 0 ? 64 : _size * 2);
 		_data[_length++] = value;
 	}
+	T* append(T value, int count) {
+		int startLen = _length;
+		for (int i = 0; i < count; i++)
+			append(value);
+		return _data + startLen;
+	}
 	void clear() {
 		_length = 0;
 	}
@@ -161,6 +170,8 @@ public:
 	}
 };
 
+typedef Array<float> FloatArray;
+typedef Array<int> IntArray;
 typedef Array<Vector2d> Vector2dArray;
 typedef Array<Vector3d> Vector3dArray;
 

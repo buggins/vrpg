@@ -9,6 +9,140 @@ VRPG::VRPG()
 {
 }
 
+static float face_vertices_south[] =
+{
+	-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
+	0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
+	-0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
+	0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0,
+};
+
+static float face_vertices_up[] =
+{
+	-0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
+	0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
+	-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+	0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
+};
+
+static float face_vertices_north[] =
+{
+	-0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0,
+	0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0,
+	-0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0,
+	0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0,
+};
+
+static float face_vertices_down[] =
+{
+	-0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 0.0,
+	0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 0.0,
+	-0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 1.0,
+	0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 1.0,
+};
+
+static float face_vertices_east[] =
+{
+	0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
+	0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
+	0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
+};
+
+static float face_vertices_west[] =
+{
+	-0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 0.0,
+	-0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0,
+	-0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0,
+	-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 1.0
+};
+
+static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0) {
+	for (int i = 0; i < 4; i++) {
+		float * srcvertex = src + i * 8;
+		float * dstvertex = data + i * 8;
+		for (int j = 0; j < 8; j++) {
+			float v = srcvertex[j];
+			if (j == 0)
+				v += x0;
+			else if (j == 1)
+				v += y0;
+			else if (j == 2)
+				v += z0;
+			dstvertex[j] = v;
+		}
+	}
+}
+
+static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0) {
+	// data is 8 comp * 4 vert floats
+	switch (face) {
+	case NORTH:
+		fillFaceMesh(data, face_vertices_north, x0, y0, z0);
+		break;
+	case SOUTH:
+		fillFaceMesh(data, face_vertices_south, x0, y0, z0);
+		break;
+	case WEST:
+		fillFaceMesh(data, face_vertices_west, x0, y0, z0);
+		break;
+	case EAST:
+		fillFaceMesh(data, face_vertices_east, x0, y0, z0);
+		break;
+	case UP:
+		fillFaceMesh(data, face_vertices_up, x0, y0, z0);
+		break;
+	case DOWN:
+		fillFaceMesh(data, face_vertices_down, x0, y0, z0);
+		break;
+	}
+}
+
+class MeshVisitor : public CellVisitor {
+	FloatArray vertices;
+	IntArray indexes;
+	int faceCount;
+public:
+	MeshVisitor() : faceCount(0) {
+	}
+	~MeshVisitor() {
+	}
+	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) {
+		int v0 = faceCount * 4;
+		faceCount++;
+		float * vptr = vertices.append(0.0f, 8 * 6);
+		int * iptr = indexes.append(0, 6);
+		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+		iptr[0] = v0 + 0;
+		iptr[1] = v0 + 1;
+		iptr[2] = v0 + 2;
+		iptr[3] = v0 + 2;
+		iptr[4] = v0 + 1;
+		iptr[5] = v0 + 3;
+	}
+	Mesh* createMesh() {
+		unsigned int vertexCount = faceCount * 4;
+		unsigned int indexCount = faceCount * 6;
+		VertexFormat::Element elements[] =
+		{
+			VertexFormat::Element(VertexFormat::POSITION, 3),
+			VertexFormat::Element(VertexFormat::NORMAL, 3),
+			VertexFormat::Element(VertexFormat::TEXCOORD0, 2)
+		};
+		Mesh* mesh = Mesh::createMesh(VertexFormat(elements, 3), vertexCount, false);
+		if (mesh == NULL)
+		{
+			GP_ERROR("Failed to create mesh.");
+			return NULL;
+		}
+		mesh->setVertexData(vertices.ptr(), 0, vertexCount);
+		MeshPart* meshPart = mesh->addPart(Mesh::TRIANGLES, Mesh::INDEX32, indexCount, false);
+		meshPart->setIndexData(indexes.ptr(), 0, indexCount);
+		return mesh;
+	}
+};
+
+
 static Mesh* createCubeMesh(float size = 1.0f)
 {
 	float a = size * 0.5f;
@@ -90,6 +224,18 @@ Material * createMaterial() {
 
 static int cubeIndex = 1;
 
+Node * VRPG::createWorldNode(Mesh * mesh) {
+	Material * material = createMaterial();
+	material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	material->getParameter("u_directionalLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
+
+	Model* cubeModel = Model::create(mesh);
+	Node * cubeNode = Node::create("world");
+	cubeModel->setMaterial(material);
+	cubeNode->setDrawable(cubeModel);
+	return cubeNode;
+}
+
 Node * VRPG::createCube(int x, int y, int z) {
 	Material * material = createMaterial();
 	material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
@@ -140,8 +286,8 @@ void VRPG::initialize()
 	SAFE_RELEASE(camera);
 
 	// Move the camera to look at the origin.
-	cameraNode->translate(0, 1, 5);
-	//cameraNode->rotateX(MATH_DEG_TO_RAD(-11.25f));
+	cameraNode->translate(15, 3, 15);
+	cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
 	Light* light = Light::createDirectional(0.75f, 0.75f, 0.75f);
@@ -176,6 +322,7 @@ void VRPG::initialize()
 	SAFE_RELEASE(cubeMesh);
 
 	Node * _group2 = _scene->addNode("group2");
+#if 0
 	int sz = 50;
 	for (int x = -sz; x <= sz; x++) {
 		for (int y = -sz; y <= sz; y++) {
@@ -188,6 +335,7 @@ void VRPG::initialize()
 		_group2->addChild(createCube(x, 1, -sz));
 		_group2->addChild(createCube(x, 1, sz));
 	}
+#endif
 
 	World * world = new World();
 
@@ -205,11 +353,21 @@ void VRPG::initialize()
 		world->setCell(10, 1, x, 3);
 	}
 	TestVisitor * visitor = new TestVisitor();
-
 	world->visitVisibleCells(world->getCamPosition(), visitor);
+	delete visitor;
+
+	MeshVisitor * meshVisitor = new MeshVisitor();
+	world->visitVisibleCells(world->getCamPosition(), meshVisitor);
+	Mesh * worldMesh = meshVisitor->createMesh();
+	Node * worldNode = createWorldNode(worldMesh);
+	SAFE_RELEASE(worldMesh);
+	delete meshVisitor;
+
+	_group2->addChild(worldNode);
+
+
 
 	delete world;
-	delete visitor;
 
 }
 
@@ -222,9 +380,9 @@ void VRPG::update(float elapsedTime)
 {
     // Rotate model
     //_scene->findNode("box")
-	_group1->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
-	_cubeNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
-	_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
+	//_group1->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
+	//_cubeNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
+	//_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
 	//_cubeNode2->rotateX(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
 }
 

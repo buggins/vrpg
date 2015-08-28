@@ -57,6 +57,7 @@ private:
     bool drawScene(Node* node);
 
 	Node * createCube(int x, int y, int z);
+	Node * createWorldNode(Mesh * mesh);
 
     Scene* _scene;
 	Node * _group1;
