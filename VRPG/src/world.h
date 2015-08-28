@@ -2,8 +2,7 @@
 #define WORLD_H_INCLUDED
 
 #include <stdlib.h>
-
-typedef unsigned char cell_t;
+#include "worldtypes.h"
 
 // Layer is 16x16 (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells
 #define CHUNK_DX_SHIFT 4
@@ -16,59 +15,6 @@ typedef unsigned char cell_t;
 
 const cell_t NO_CELL = 0;
 const cell_t END_OF_WORLD = 255;
-
-template<typename T, T initValue, void (*disposeFunction)(T value) > struct InfiniteArray {
-private:
-	T * data;
-	int size;
-	int minIdx;
-	int maxIdx;
-	void resize(int sz) {
-		if (size < sz) {
-			data = (T*)realloc(data, sizeof(T) * sz);
-			for (int i = size; i < sz; i++)
-				data[i] = initValue;
-			size = sz;
-		}
-	}
-public:
-	int minIndex() {
-		return minIdx;
-	}
-	int maxIndex() {
-		return maxIdx;
-	}
-	void set(int index, T value) {
-		int idx = index < 0 ? (-index) * 2 - 1 : index * 2;
-		resize(idx);
-		if (data[idx] != initValue)
-			disposeFunction(data[idx]);
-		data[idx] = value;
-		if (minIdx > index)
-			minIdx = index;
-		if (maxIdx < index + 1)
-			maxIdx = index;
-	}
-	T get(int index) {
-		if (index < minIdx || index >= maxIdx)
-			return initValue;
-
-	}
-	InfiniteArray() : data(NULL), size(0), minIdx(0), maxIdx(0) {
-	}
-	~InfiniteArray() {
-		if (data) {
-			for (int i = 0; i < size; i++) {
-				if (data[i] != initValue)
-					disposeFunction(data[i]);
-			}
-			free(data);
-		}
-		data = NULL;
-		size = 0;
-	}
-
-};
 
 // Layer is 256x16x16 CHUNK_DY layers = CHUNK_DY * (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells
 struct ChunkLayer {
@@ -172,14 +118,21 @@ public:
 	}
 };
 
-struct World {
+/// Voxel World
+class World {
+private:
 	ChunkMatrix chunks;
+	Position camPosition;
+	int maxVisibleRange;
 public:
-	World() {
-
+	World() : maxVisibleRange(64) {
 	}
 	~World() {
 
+	}
+	void visitVisibleCells(Position & position);
+	cell_t getCell(Vector3d v) {
+		return getCell(v.x, v.y, v.z);
 	}
 	cell_t getCell(int x, int y, int z) {
 		int chunkx = x >> CHUNK_DX_SHIFT;
@@ -201,4 +154,4 @@ public:
 	}
 };
 
-#endif WORLD_H_INCLUDED
+#endif// WORLD_H_INCLUDED

@@ -1,4 +1,5 @@
 #include "VRPG.h"
+#include "world.h"
 
 // Declare our game instance
 VRPG game;
@@ -173,6 +174,10 @@ void VRPG::initialize()
 		_group2->addChild(createCube(x, 1, -sz));
 		_group2->addChild(createCube(x, 1, sz));
 	}
+
+	World * world = new World();
+
+	delete world;
 
 }
 
