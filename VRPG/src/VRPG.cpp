@@ -108,6 +108,20 @@ Node * VRPG::createCube(int x, int y, int z) {
 	return cubeNode;
 }
 
+class TestVisitor : public CellVisitor {
+	FILE * f;
+public:
+	TestVisitor() {
+		f = fopen("facelog.log", "wt");
+	}
+	~TestVisitor() {
+		fclose(f);
+	}
+	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) {
+		fprintf(f, "pos %d,%d,%d  \tcell=%d  \tface=%d\n", pos.x, pos.y, pos.z, cell, face);
+	}
+};
+
 void VRPG::initialize()
 {
 	// Create a new empty scene.
@@ -177,7 +191,25 @@ void VRPG::initialize()
 
 	World * world = new World();
 
+	world->getCamPosition().pos = Vector3d(0, 3, 0);
+
+	for (int x = -10; x <= 10; x++)
+		for (int z = -10; z <= 10; z++) {
+			world->setCell(x, 0, z, 1);
+			world->setCell(x, 7, z, 1);
+		}
+	for (int x = -10; x <= 10; x++) {
+		world->setCell(x, 1, -10, 2);
+		world->setCell(x, 1, 10, 2);
+		world->setCell(-10, 1, x, 3);
+		world->setCell(10, 1, x, 3);
+	}
+	TestVisitor * visitor = new TestVisitor();
+
+	world->visitVisibleCells(world->getCamPosition(), visitor);
+
 	delete world;
+	delete visitor;
 
 }
 

@@ -9,7 +9,7 @@ private:
 	int dx2;
 	T * data;
 public:
-	SymmetricMatrix(int sz = 0) : _size(sz), data(NULL) {
+	SymmetricMatrix(int sz = 1) : _size(sz), data(NULL) {
 		reset(sz);
 	}
 	~SymmetricMatrix() {
@@ -27,6 +27,7 @@ public:
 	}
 	void reset(int sz) {
 		if (_size != sz || !data) {
+			_size = sz;
 			dx = _size + _size - 1;
 			dx2 = dx / 2;
 			if (data)
@@ -82,6 +83,9 @@ struct Vector3d {
 		z -= v.z;
 		return *this;
 	}
+	int operator * (Vector3d v) const {
+		return x*v.x + y*v.y + z*v.z;
+	}
 	Vector3d operator * (int n) const {
 		return Vector3d(x * n, y * n, z * n);
 	}
@@ -126,6 +130,7 @@ public:
 	void reserve(int sz) {
 		if (_size < sz) {
 			_data = (T*)realloc(_data, sizeof(T)*sz);
+			_size = sz;
 		}
 		for (int i = _size; i < sz; i++)
 			_data[i] = initValue;
@@ -166,6 +171,10 @@ private:
 	int minIdx;
 	int maxIdx;
 	void resize(int sz) {
+		if (sz < 128)
+			sz = 128;
+		else
+			sz = sz * 2;
 		if (size < sz) {
 			data = (T*)realloc(data, sizeof(T) * sz);
 			for (int i = size; i < sz; i++)
@@ -182,14 +191,15 @@ public:
 	}
 	void set(int index, T value) {
 		int idx = index < 0 ? (-index) * 2 - 1 : index * 2;
-		resize(idx);
-		if (data[idx] != initValue)
-			disposeFunction(data[idx]);
+		resize(idx + 1);
+		T oldData = data[idx];
+		if (oldData != initValue)
+			disposeFunction(oldData);
 		data[idx] = value;
 		if (minIdx > index)
 			minIdx = index;
 		if (maxIdx < index + 1)
-			maxIdx = index;
+			maxIdx = index + 1;
 	}
 	T get(int index) {
 		if (index < minIdx || index >= maxIdx)
@@ -221,6 +231,11 @@ enum Dir {
 	UP,
 	DOWN,
 };
+
+/// returns opposite direction to specified direction
+inline Dir opposite(Dir d) {
+	return (Dir)(d ^ 1);
+}
 
 struct Direction {
 	Direction(int x, int y, int z) {
@@ -318,12 +333,6 @@ struct Position {
 	}
 };
 
-
-class CellVisitor {
-public:
-	virtual ~CellVisitor() {}
-	virtual void visit(Position & camPosition, Vector3d pos) = 0;
-};
 
 #endif// WORLDTYPES_H_INCLUDED
 

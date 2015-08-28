@@ -57,7 +57,7 @@ public:
 			return NO_CELL;
 		return layer->get(x & CHUNK_DX_MASK, z & CHUNK_DY_MASK);
 	}
-	inline cell_t set(int x, int y, int z, cell_t cell) {
+	inline void set(int x, int y, int z, cell_t cell) {
 		ChunkLayer * layer = layers[y & CHUNK_DY_MASK];
 		if (!layer) {
 			layer = new ChunkLayer();
@@ -71,9 +71,8 @@ public:
 };
 
 typedef InfiniteArray<Chunk*, NULL, Chunk::dispose> ChunkStripe;
-void disposeChunkStripe(ChunkStripe * p) {
-	delete p;
-}
+void disposeChunkStripe(ChunkStripe * p);
+
 typedef InfiniteArray<ChunkStripe*, NULL, disposeChunkStripe> ChunkStripes;
 
 struct ChunkMatrix {
@@ -118,6 +117,14 @@ public:
 	}
 };
 
+class World;
+class CellVisitor {
+public:
+	virtual ~CellVisitor() {}
+	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) { }
+	virtual void visit(World * world, Position & camPosition, Vector3d pos) { }
+};
+
 /// Voxel World
 class World {
 private:
@@ -130,7 +137,8 @@ public:
 	~World() {
 
 	}
-	void visitVisibleCells(Position & position);
+	void visitVisibleCells(Position & position, CellVisitor * visitor);
+	Position & getCamPosition() { return camPosition; }
 	cell_t getCell(Vector3d v) {
 		return getCell(v.x, v.y, v.z);
 	}
