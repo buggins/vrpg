@@ -90,20 +90,20 @@ static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0)
 	// data is 8 comp * 4 vert floats
 	switch (face) {
     default:
-    case SOUTH:
-	//case NORTH:
+    //case SOUTH:
+	case NORTH:
 		fillFaceMesh(data, face_vertices_north, x0, y0, z0);
 		break;
-    case NORTH:
-	//case SOUTH:
+    //case NORTH:
+	case SOUTH:
 		fillFaceMesh(data, face_vertices_south, x0, y0, z0);
 		break;
-	case EAST:
-    //case WEST:
+	//case EAST:
+    case WEST:
 		fillFaceMesh(data, face_vertices_west, x0, y0, z0);
 		break;
-	case WEST:
-    //case EAST:
+	//case WEST:
+    case EAST:
 		fillFaceMesh(data, face_vertices_east, x0, y0, z0);
 		break;
 	case UP:
@@ -309,7 +309,7 @@ void VRPG::initialize()
 	SAFE_RELEASE(camera);
 
 	// Move the camera to look at the origin.
-	cameraNode->translate(12, 3, 12);
+	cameraNode->translate(0, 3, 0);
 	cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
@@ -363,7 +363,7 @@ void VRPG::initialize()
 	World * world = new World();
 
 	world->getCamPosition().pos = Vector3d(0, 3, 0);
-    world->getCamPosition().direction.set(EAST);
+    world->getCamPosition().direction.set(NORTH);
 
     world->setCell(-5, 3, 5, 1);
 #if 0
@@ -409,6 +409,8 @@ void VRPG::finalize()
     SAFE_RELEASE(_scene);
 }
 
+static bool animation = true;
+
 void VRPG::update(float elapsedTime)
 {
     // Rotate model
@@ -417,7 +419,8 @@ void VRPG::update(float elapsedTime)
 	//_cubeNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
 	//_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
 	//_cubeNode2->rotateX(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
-    _group2->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 2000.0f * 180.0f));
+	if (animation)
+		_group2->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 5000.0f * 180.0f));
 }
 
 void VRPG::render(float elapsedTime)
@@ -458,6 +461,8 @@ void VRPG::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int contactI
     {
     case Touch::TOUCH_PRESS:
         _wireframe = !_wireframe;
+		if (!_wireframe)
+			animation = !animation;
         break;
     case Touch::TOUCH_RELEASE:
         break;
