@@ -7,6 +7,7 @@ VRPG game;
 VRPG::VRPG()
     : _scene(NULL), _wireframe(false)
 {
+	runWorldUnitTests();
 }
 
 Material * createMaterial();
@@ -90,12 +91,12 @@ static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0)
 	// data is 8 comp * 4 vert floats
 	switch (face) {
     default:
-    //case SOUTH:
-	case NORTH:
+    case SOUTH:
+	//case NORTH:
 		fillFaceMesh(data, face_vertices_north, x0, y0, z0);
 		break;
-    //case NORTH:
-	case SOUTH:
+    case NORTH:
+	//case SOUTH:
 		fillFaceMesh(data, face_vertices_south, x0, y0, z0);
 		break;
 	//case EAST:
@@ -362,10 +363,13 @@ void VRPG::initialize()
 
 	World * world = new World();
 
-	world->getCamPosition().pos = Vector3d(0, 3, 0);
+	world->getCamPosition().pos = Vector3d(0, 3, 3);
     world->getCamPosition().direction.set(NORTH);
 
     world->setCell(-5, 3, 5, 1);
+	world->setCell(-2, 1, -7, 8);
+	world->setCell(-2, 2, -7, 8);
+	world->setCell(-2, 3, -7, 8);
 #if 0
     world->setCell(0, 7, 0, 1);
     world->setCell(5, 7, 0, 1);
@@ -385,6 +389,10 @@ void VRPG::initialize()
 		world->setCell(10, 1, x, 3);
 	}
 #endif
+	world->setCell(3, 0, -6, 0); // hole
+	world->setCell(3, 0, -7, 0); // hole
+	world->setCell(4, 0, -6, 0); // hole
+	world->setCell(4, 0, -7, 0); // hole
 	TestVisitor * visitor = new TestVisitor();
 	world->visitVisibleCells(world->getCamPosition(), visitor);
 	delete visitor;
@@ -409,7 +417,7 @@ void VRPG::finalize()
     SAFE_RELEASE(_scene);
 }
 
-static bool animation = true;
+static bool animation = false;
 
 void VRPG::update(float elapsedTime)
 {

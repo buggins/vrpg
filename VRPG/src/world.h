@@ -162,4 +162,7 @@ public:
 	}
 };
 
+#define UNIT_TESTS 1
+void runWorldUnitTests();
+
 #endif// WORLD_H_INCLUDED

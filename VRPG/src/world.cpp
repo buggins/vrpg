@@ -1,5 +1,78 @@
 #include "world.h"
 #include <stdio.h>
+#include <assert.h>
+
+void Direction::set(Dir d) {
+	switch (d) {
+	default:
+	case NORTH:
+		set(0, 0, -1);
+		break;
+	case SOUTH:
+		set(0, 0, 1);
+		break;
+	case WEST:
+		set(-1, 0, 0);
+		break;
+	case EAST:
+		set(1, 0, 0);
+		break;
+	case UP:
+		set(0, 1, 0);
+		break;
+	case DOWN:
+		set(0, -1, 0);
+		break;
+	}
+}
+void Direction::set(int x, int y, int z) {
+	forward = Vector3d(x, y, z);
+	if (x) {
+		dir = (x > 0) ? EAST : WEST;
+	}
+	else if (y) {
+		dir = (y > 0) ? UP : DOWN;
+	}
+	else {
+		dir = (z > 0) ? SOUTH : NORTH;
+	}
+	switch (dir) {
+	case UP:
+		up = Vector3d(1, 0, 0);
+		left = Vector3d(0, 0, 1);
+		break;
+	case DOWN:
+		up = Vector3d(1, 0, 0);
+		left = Vector3d(0, 0, -1);
+		break;
+	case NORTH:
+		up = Vector3d(0, 1, 0);
+		left = Vector3d(-1, 0, 0);
+		break;
+	case SOUTH:
+		up = Vector3d(0, 1, 0);
+		left = Vector3d(1, 0, 0);
+		break;
+	case EAST:
+		up = Vector3d(0, 1, 0);
+		left = Vector3d(0, 0, -1);
+		break;
+	case WEST:
+		up = Vector3d(0, 1, 0);
+		left = Vector3d(0, 0, 1);
+		break;
+	}
+	down = -up;
+	right = -left;
+	forwardUp = forward + up;
+	forwardDown = forward + down;
+	forwardLeft = forward + left;
+	forwardLeftUp = forward + left + up;
+	forwardLeftDown = forward + left + down;
+	forwardRight = forward + right;
+	forwardRightUp = forward + right + up;
+	forwardRightDown = forward + right + down;
+}
 
 struct VisitorHelper {
 	World & world;
@@ -111,4 +184,48 @@ void World::visitVisibleCells(Position & position, CellVisitor * visitor) {
 
 void disposeChunkStripe(ChunkStripe * p) {
 	delete p;
+}
+
+#if UNIT_TESTS==1
+void testVectors() {
+	Vector3d v1(1, 0, 0);
+	Direction d1(1, 0, 0);
+	assert(d1.dir == EAST);
+	assert(d1.forward == Vector3d(1, 0, 0));
+	assert(d1.up == Vector3d(0, 1, 0));
+	assert(d1.down == Vector3d(0, -1, 0));
+	assert(d1.left == Vector3d(0, 0, -1));
+	assert(d1.right == Vector3d(0, 0, 1));
+
+	Direction d3(-1, 0, 0);
+	assert(d3.dir == WEST);
+	assert(d3.forward == Vector3d(-1, 0, 0));
+	assert(d3.up == Vector3d(0, 1, 0));
+	assert(d3.down == Vector3d(0, -1, 0));
+	assert(d3.left == Vector3d(0, 0, 1));
+	assert(d3.right == Vector3d(0, 0, -1));
+
+	Direction d2(0, 0, -1);
+	assert(d2.dir == NORTH);
+	assert(d2.forward == Vector3d(0, 0, -1));
+	assert(d2.up == Vector3d(0, 1, 0));
+	assert(d2.down == Vector3d(0, -1, 0));
+	assert(d2.left == Vector3d(-1, 0, 0));
+	assert(d2.right == Vector3d(1, 0, 0));
+
+	Direction d4(0, 0, 1);
+	assert(d4.dir == SOUTH);
+	assert(d4.forward == Vector3d(0, 0, 1));
+	assert(d4.up == Vector3d(0, 1, 0));
+	assert(d4.down == Vector3d(0, -1, 0));
+	assert(d4.left == Vector3d(1, 0, 0));
+	assert(d4.right == Vector3d(-1, 0, 0));
+
+}
+#endif
+
+void runWorldUnitTests() {
+#if UNIT_TESTS==1
+	testVectors();
+#endif
 }

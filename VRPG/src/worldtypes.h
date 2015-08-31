@@ -65,6 +65,9 @@ struct Vector3d {
 	bool operator == (Vector3d v) const {
 		return x == v.x && y == v.y && z == v.z;
 	}
+	Vector3d operator - () const {
+		return Vector3d(-x, -y, -z);
+	}
 	Vector3d operator + (Vector3d v) const {
 		return Vector3d(x + v.x, y + v.y, z + v.z);
 	}
@@ -252,59 +255,21 @@ struct Direction {
 	Direction(int x, int y, int z) {
 		set(x, y, z);
 	}
+	Direction(Vector3d v) {
+		set(v);
+	}
 	Direction(Dir d) {
 		set(d);
 	}
 	Direction() {
 		set(0, 0, -1);
 	}
-	void set(Dir d) {
-		switch (d) {
-		default:
-		case NORTH:
-			set(0, 0, -1);
-			break;
-		case SOUTH:
-			set(0, 0, 1);
-			break;
-		case WEST:
-			set(-1, 0, 0);
-			break;
-		case EAST:
-			set(1, 0, 0);
-			break;
-		case UP:
-			set(0, 1, 0);
-			break;
-		case DOWN:
-			set(0, -1, 0);
-			break;
-		}
-	}
-	void set(int x, int y, int z) {
-		forward = Vector3d(x, y, z);
-		if (x) {
-			dir = (x > 0) ? EAST : WEST;
-		}
-		else if (y) {
-			dir = (y > 0) ? UP : DOWN;
-		}
-		else {
-			dir = (z > 0) ? SOUTH : NORTH;
-		}
-		up = forward.turnUp();
-		right = forward.turnRight();
-		left = forward.turnLeft();
-		down = forward.turnDown();
-		forwardUp = forward + up;
-		forwardDown = forward + down;
-		forwardLeft = forward + left;
-		forwardLeftUp = forward + left + up;
-		forwardLeftDown = forward + left + down;
-		forwardRight = forward + right;
-		forwardRightUp = forward + right + up;
-		forwardRightDown = forward + right + down;
-	}
+	/// set by direction code
+	void set(Dir d);
+	/// set by vector
+	void set(int x, int y, int z);
+	/// set by vector
+	void set(Vector3d v) { set(v.x, v.y, v.z); }
 	Dir dir;
 	Vector3d forward;
 	Vector3d up;
@@ -324,6 +289,12 @@ struct Direction {
 struct Position {
 	Vector3d pos;
 	Direction direction;
+	Position() {
+
+	}
+	Position(Vector3d position, Vector3d dir) : pos(position), direction(dir) {
+
+	}
 	Vector2d calcPlaneCoords(Vector3d v) {
 		v = v - pos;
 		switch (direction.dir) {
