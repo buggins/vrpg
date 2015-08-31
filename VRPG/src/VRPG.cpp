@@ -11,6 +11,7 @@ VRPG::VRPG()
 }
 
 Material * createMaterial();
+Material * createMaterialBlocks();
 
 static float face_vertices_south[] =
 {
@@ -70,7 +71,7 @@ static int face_indexes_back[] =
     0, 2, 1, 2, 3, 1
 };
 
-static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0) {
+static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0, int tileX, int tileY) {
 	for (int i = 0; i < 4; i++) {
 		float * srcvertex = src + i * 8;
 		float * dstvertex = data + i * 8;
@@ -82,36 +83,40 @@ static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0
 				v += y0;
 			else if (j == 2)
 				v += z0;
+			else if (j == 6)
+				v = ((tileX + v * 16)) / 1024.0f;
+			else if (j == 7)
+				v = (1024 - (tileY + v * 16)) / 1024.0f;
 			dstvertex[j] = v;
 		}
 	}
 }
 
-static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0) {
+static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0, int tileX, int tileY) {
 	// data is 8 comp * 4 vert floats
 	switch (face) {
     default:
     case SOUTH:
 	//case NORTH:
-		fillFaceMesh(data, face_vertices_north, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_north, x0, y0, z0, tileX, tileY);
 		break;
     case NORTH:
 	//case SOUTH:
-		fillFaceMesh(data, face_vertices_south, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_south, x0, y0, z0, tileX, tileY);
 		break;
 	//case EAST:
     case WEST:
-		fillFaceMesh(data, face_vertices_west, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_west, x0, y0, z0, tileX, tileY);
 		break;
 	//case WEST:
     case EAST:
-		fillFaceMesh(data, face_vertices_east, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_east, x0, y0, z0, tileX, tileY);
 		break;
 	case UP:
-		fillFaceMesh(data, face_vertices_up, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_up, x0, y0, z0, tileX, tileY);
 		break;
 	case DOWN:
-		fillFaceMesh(data, face_vertices_down, x0, y0, z0);
+		fillFaceMesh(data, face_vertices_down, x0, y0, z0, tileX, tileY);
 		break;
 	}
 }
@@ -142,7 +147,11 @@ public:
 		faceCount++;
 		float * vptr = vertices.append(0.0f, 8 * 4);
 		int * iptr = indexes.append(0, 6);
-		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+		int texX = 1;
+		int texY = 1;
+		texX = texX * 20 + 1;
+		texY = texY * 20 + 1;
+		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texX, texY);
         for (int i = 0; i < 6; i++)
             iptr[i] = v0 + face_indexes[i];
 //        float vbuf[8*4];
@@ -258,10 +267,35 @@ Material * createMaterial() {
 	return material;
 }
 
+Material * createMaterialBlocks() {
+	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "DIRECTIONAL_LIGHT_COUNT 1");
+	if (material == NULL)
+	{
+		GP_ERROR("Failed to create material for model.");
+		return NULL;
+	}
+	// These parameters are normally set in a .material file but this example sets them programmatically.
+	// Bind the uniform "u_worldViewProjectionMatrix" to use the WORLD_VIEW_PROJECTION_MATRIX from the scene's active camera and the node that the model belongs to.
+	material->setParameterAutoBinding("u_worldViewProjectionMatrix", "WORLD_VIEW_PROJECTION_MATRIX");
+	material->setParameterAutoBinding("u_inverseTransposeWorldViewMatrix", "INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX");
+	// Set the ambient color of the material.
+	material->getParameter("u_ambientColor")->setValue(Vector3(0.2f, 0.2f, 0.2f));
+
+	// Bind the light's color and direction to the material.
+
+	// Load the texture from file.
+	Texture::Sampler* sampler = material->getParameter("u_diffuseTexture")->setValue("res/png/blocks.png", true);
+	sampler->setFilterMode(Texture::NEAREST_MIPMAP_LINEAR, Texture::NEAREST);
+	material->getStateBlock()->setCullFace(true);
+	material->getStateBlock()->setDepthTest(true);
+	material->getStateBlock()->setDepthWrite(true);
+	return material;
+}
+
 static int cubeIndex = 1;
 
 Node * VRPG::createWorldNode(Mesh * mesh) {
-	Material * material = createMaterial();
+	Material * material = createMaterialBlocks();
 	material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
 	material->getParameter("u_directionalLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
 
