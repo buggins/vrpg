@@ -121,6 +121,7 @@ class World;
 class CellVisitor {
 public:
 	virtual ~CellVisitor() {}
+	virtual void newDirection(Position & camPosition) { }
 	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) { }
 	virtual void visit(World * world, Position & camPosition, Vector3d pos) { }
 };
@@ -131,35 +132,23 @@ private:
 	ChunkMatrix chunks;
 	Position camPosition;
 	int maxVisibleRange;
+	int lastChunkX;
+	int lastChunkZ;
+	Chunk * lastChunk;
 public:
-	World() : maxVisibleRange(64) {
+	World() : maxVisibleRange(32), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL) {
 	}
 	~World() {
 
 	}
-	void visitVisibleCells(Position & position, CellVisitor * visitor);
+	void visitVisibleCells(Position & position, CellVisitor * visitor, bool visitThisPosition = true);
+	void visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor);
 	Position & getCamPosition() { return camPosition; }
 	cell_t getCell(Vector3d v) {
 		return getCell(v.x, v.y, v.z);
 	}
-	cell_t getCell(int x, int y, int z) {
-		int chunkx = x >> CHUNK_DX_SHIFT;
-		int chunkz = z >> CHUNK_DX_SHIFT;
-		Chunk * p = chunks.get(chunkx, chunkz);
-		if (!p)
-			return NO_CELL;
-		return p->get(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK);
-	}
-	void setCell(int x, int y, int z, cell_t value) {
-		int chunkx = x >> CHUNK_DX_SHIFT;
-		int chunkz = z >> CHUNK_DX_SHIFT;
-		Chunk * p = chunks.get(chunkx, chunkz);
-		if (!p) {
-			p = new Chunk();
-			chunks.set(chunkx, chunkz, p);
-		}
-		p->set(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK, value);
-	}
+	cell_t getCell(int x, int y, int z);
+	void setCell(int x, int y, int z, cell_t value);
 };
 
 #define UNIT_TESTS 1

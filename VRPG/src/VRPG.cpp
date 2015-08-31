@@ -120,12 +120,24 @@ class MeshVisitor : public CellVisitor {
 	FloatArray vertices;
 	IntArray indexes;
 	int faceCount;
+	FILE * log;
+	lUInt64 startTime;
 public:
-	MeshVisitor() : faceCount(0) {
+	MeshVisitor() : faceCount(0), log(NULL) {
+		log = fopen("faces.log", "wt");
+		startTime = GetCurrentTimeMillis();
 	}
 	~MeshVisitor() {
+		if (log) {
+			fprintf(log, "Time elapsed: %lld millis\n", GetCurrentTimeMillis() - startTime);
+			fclose(log);
+		}
+	}
+	virtual void newDirection(Position & camPosition) {
+		//fprintf(log, "Cam position : %d,%d,%d \t dir=%d\n", camPosition.pos.x, camPosition.pos.y, camPosition.pos.z, camPosition.direction.dir);
 	}
 	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) {
+		//fprintf(log, "face %d: %d,%d,%d \t %d \t %d\n", faceCount, pos.x, pos.y, pos.z, cell, face);
 		int v0 = faceCount * 4;
 		faceCount++;
 		float * vptr = vertices.append(0.0f, 8 * 4);
@@ -364,7 +376,7 @@ void VRPG::initialize()
 	World * world = new World();
 
 	world->getCamPosition().pos = Vector3d(0, 3, 3);
-    world->getCamPosition().direction.set(NORTH);
+    world->getCamPosition().direction.set(EAST);
 
     world->setCell(-5, 3, 5, 1);
 	world->setCell(-2, 1, -7, 8);
@@ -393,12 +405,17 @@ void VRPG::initialize()
 	world->setCell(3, 0, -7, 0); // hole
 	world->setCell(4, 0, -6, 0); // hole
 	world->setCell(4, 0, -7, 0); // hole
-	TestVisitor * visitor = new TestVisitor();
-	world->visitVisibleCells(world->getCamPosition(), visitor);
-	delete visitor;
+
+
+	//TestVisitor * visitor = new TestVisitor();
+	////world->visitVisibleCells(world->getCamPosition(), visitor);
+	//world->visitVisibleCellsAllDirections(world->getCamPosition(), visitor);
+	//
+	//delete visitor;
 
 	MeshVisitor * meshVisitor = new MeshVisitor();
-	world->visitVisibleCells(world->getCamPosition(), meshVisitor);
+	//world->visitVisibleCells(world->getCamPosition(), meshVisitor);
+	world->visitVisibleCellsAllDirections(world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
 	Node * worldNode = createWorldNode(worldMesh);
 	SAFE_RELEASE(worldMesh);

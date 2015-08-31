@@ -2,6 +2,111 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <time.h>
+#ifdef LINUX
+#include <sys/time.h>
+#if !defined(__APPLE__)
+#include <malloc.h>
+#endif
+#endif
+
+#if !defined(__SYMBIAN32__) && defined(_WIN32)
+extern "C" {
+#include <windows.h>
+}
+#endif
+
+#ifdef _WIN32
+static bool __timerInitialized = false;
+static double __timeTicksPerMillis;
+static lUInt64 __timeStart;
+static lUInt64 __timeAbsolute;
+static lUInt64 __startTimeMillis;
+#endif
+
+void CRReinitTimer() {
+#ifdef _WIN32
+	LARGE_INTEGER tps;
+	QueryPerformanceFrequency(&tps);
+	__timeTicksPerMillis = (double)(tps.QuadPart / 1000L);
+	LARGE_INTEGER queryTime;
+	QueryPerformanceCounter(&queryTime);
+	__timeStart = (lUInt64)(queryTime.QuadPart / __timeTicksPerMillis);
+	__timerInitialized = true;
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	__startTimeMillis = (ft.dwLowDateTime | (((lUInt64)ft.dwHighDateTime) << 32)) / 10000;
+#else
+	// do nothing. it's for win32 only
+#endif
+}
+
+
+lUInt64 GetCurrentTimeMillis() {
+#if defined(LINUX) || defined(ANDROID) || defined(_LINUX)
+	timeval ts;
+	gettimeofday(&ts, NULL);
+	return ts.tv_sec * (lUInt64)1000 + ts.tv_usec / 1000;
+#else
+#ifdef _WIN32
+	if (!__timerInitialized) {
+		CRReinitTimer();
+		return __startTimeMillis;
+	}
+	else {
+		LARGE_INTEGER queryTime;
+		QueryPerformanceCounter(&queryTime);
+		__timeAbsolute = (lUInt64)(queryTime.QuadPart / __timeTicksPerMillis);
+		return __startTimeMillis + (lUInt64)(__timeAbsolute - __timeStart);
+	}
+#else
+#error * You should define GetCurrentTimeMillis() *
+#endif
+#endif
+}
+
+
+cell_t World::getCell(int x, int y, int z) {
+	int chunkx = x >> CHUNK_DX_SHIFT;
+	int chunkz = z >> CHUNK_DX_SHIFT;
+	Chunk * p;
+	if (lastChunkX == chunkx && lastChunkZ == chunkz) {
+		p = lastChunk;
+	}
+	else {
+		p = chunks.get(chunkx, chunkz);
+		lastChunkX = chunkx;
+		lastChunkZ = chunkz;
+		lastChunk = p;
+	}
+	if (!p)
+		return NO_CELL;
+	return p->get(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK);
+}
+void World::setCell(int x, int y, int z, cell_t value) {
+	int chunkx = x >> CHUNK_DX_SHIFT;
+	int chunkz = z >> CHUNK_DX_SHIFT;
+	Chunk * p;
+	if (lastChunkX == chunkx && lastChunkZ == chunkz) {
+		p = lastChunk;
+	}
+	else {
+		p = chunks.get(chunkx, chunkz);
+		lastChunkX = chunkx;
+		lastChunkZ = chunkz;
+		lastChunk = p;
+	}
+	if (!p) {
+		p = new Chunk();
+		chunks.set(chunkx, chunkz, p);
+		lastChunkX = chunkx;
+		lastChunkZ = chunkz;
+		lastChunk = p;
+	}
+	p->set(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK, value);
+}
+
+
 void Direction::set(Dir d) {
 	switch (d) {
 	default:
@@ -84,7 +189,7 @@ struct VisitorHelper {
 	CellVisitor * visitor;
 	FILE * log;
 	VisitorHelper(World & w, Position & p, CellVisitor * v) : world(w), position(p), visitor(v) {
-		log = fopen("visitor.log", "wt");
+		log = fopen("visitor.log", "at");
 	}
 	~VisitorHelper() {
 		fclose(log);
@@ -140,7 +245,7 @@ struct VisitorHelper {
 	}
 
 	void planVisits(Vector3d pt) {
-		fprintf(log, "plan visits %d, %d, %d\n", pt.x, pt.y, pt.z);
+		//fprintf(log, "plan visits %d, %d, %d\n", pt.x, pt.y, pt.z);
 		needVisit(pt + position.direction.forward);
 		needVisit(pt + position.direction.forwardLeft);
 		needVisit(pt + position.direction.forwardRight);
@@ -158,7 +263,7 @@ struct VisitorHelper {
 		bool isVisited = visited.get(planeCoord.x, planeCoord.y);
 		if (cell == NO_CELL && !isVisited) {
 			newcells.append(newpt);
-			fprintf(log, "    planned visit %d,%d,%d\n", newpt.x, newpt.y, newpt.z);
+			//fprintf(log, "    planned visit %d,%d,%d\n", newpt.x, newpt.y, newpt.z);
 			visited.set(planeCoord.x, planeCoord.y, true);
 			return true;
 		}
@@ -166,7 +271,44 @@ struct VisitorHelper {
 	}
 };
 
-void World::visitVisibleCells(Position & position, CellVisitor * visitor) {
+void World::visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor) {
+	Position p = position;
+	visitor->newDirection(p);
+	visitVisibleCells(p, visitor);
+	p = position;
+	p.turnLeft();
+	p.forward();
+	visitor->newDirection(p);
+	if (getCell(p.pos) == 0)
+		visitVisibleCells(p, visitor);
+	p = position;
+	p.turnRight();
+	p.forward();
+	visitor->newDirection(p);
+	if (getCell(p.pos) == 0)
+		visitVisibleCells(p, visitor);
+	p = position;
+	p.turnRight();
+	p.turnRight();
+	//p.forward();
+	visitor->newDirection(p);
+	if (getCell(p.pos) == 0)
+		visitVisibleCells(p, visitor);
+	p = position;
+	p.turnUp();
+	p.forward();
+	visitor->newDirection(p);
+	if (getCell(p.pos) == 0)
+		visitVisibleCells(p, visitor);
+	p = position;
+	p.turnDown();
+	p.forward();
+	visitor->newDirection(p);
+	if (getCell(p.pos) == 0)
+		visitVisibleCells(p, visitor);
+}
+
+void World::visitVisibleCells(Position & position, CellVisitor * visitor, bool visitThisPosition) {
 	Vector3d pos = position.pos;
 	VisitorHelper helper(*this, position, visitor);
 	helper.newcells.append(pos);

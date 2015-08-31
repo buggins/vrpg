@@ -2,6 +2,14 @@
 #define WORLDTYPES_H_INCLUDED
 typedef unsigned char cell_t;
 
+#ifdef _WIN32
+typedef __int64 lUInt64;
+#else
+typedef long long lUInt64;
+#endif
+
+lUInt64 GetCurrentTimeMillis();
+
 template<typename T, T initValue> struct SymmetricMatrix {
 private:
 	int _size;
@@ -251,6 +259,79 @@ inline Dir opposite(Dir d) {
 	return (Dir)(d ^ 1);
 }
 
+inline Dir turnLeft(Dir d) {
+	switch (d) {
+	case WEST:
+		return SOUTH;
+	case EAST:
+		return NORTH;
+	default:
+	case NORTH:
+		return WEST;
+	case SOUTH:
+		return EAST;
+	case UP:
+		return SOUTH;
+	case DOWN:
+		return NORTH;
+	}
+}
+
+inline Dir turnRight(Dir d) {
+	switch (d) {
+	case WEST:
+		return NORTH;
+	case EAST:
+		return SOUTH;
+	default:
+	case NORTH:
+		return EAST;
+	case SOUTH:
+		return WEST;
+	case UP:
+		return NORTH;
+	case DOWN:
+		return SOUTH;
+	}
+}
+
+inline Dir turnUp(Dir d) {
+	switch (d) {
+	case WEST:
+		return UP;
+	case EAST:
+		return UP;
+	default:
+	case NORTH:
+		return UP;
+	case SOUTH:
+		return UP;
+	case UP:
+		return SOUTH;
+	case DOWN:
+		return NORTH;
+	}
+}
+
+inline Dir turnDown(Dir d) {
+	switch (d) {
+	case WEST:
+		return DOWN;
+	case EAST:
+		return DOWN;
+	default:
+	case NORTH:
+		return DOWN;
+	case SOUTH:
+		return DOWN;
+	case UP:
+		return NORTH;
+	case DOWN:
+		return SOUTH;
+	}
+}
+
+
 struct Direction {
 	Direction(int x, int y, int z) {
 		set(x, y, z);
@@ -270,6 +351,20 @@ struct Direction {
 	void set(int x, int y, int z);
 	/// set by vector
 	void set(Vector3d v) { set(v.x, v.y, v.z); }
+
+	void turnLeft() {
+		set(::turnLeft(dir));
+	}
+	void turnRight() {
+		set(::turnRight(dir));
+	}
+	void turnUp() {
+		set(::turnUp(dir));
+	}
+	void turnDown() {
+		set(::turnDown(dir));
+	}
+
 	Dir dir;
 	Vector3d forward;
 	Vector3d up;
@@ -292,6 +387,9 @@ struct Position {
 	Position() {
 
 	}
+	Position(Position & p) : pos(p.pos), direction(p.direction) {
+
+	}
 	Position(Vector3d position, Vector3d dir) : pos(position), direction(dir) {
 
 	}
@@ -312,6 +410,24 @@ struct Position {
 		case DOWN:
 			return Vector2d(v.z, v.x);
 		}
+	}
+	void turnLeft() {
+		direction.turnLeft();
+	}
+	void turnRight() {
+		direction.turnRight();
+	}
+	void turnUp() {
+		direction.turnUp();
+	}
+	void turnDown() {
+		direction.turnDown();
+	}
+	void forward(int step = 1) {
+		pos += direction.forward * step;
+	}
+	void backward(int step = 1) {
+		pos -= direction.forward * step;
 	}
 };
 
