@@ -84,12 +84,18 @@
     <ClInclude Include="src\worldtypes.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\blocks.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\VRPG.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\world.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\blocks.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

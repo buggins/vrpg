@@ -1,5 +1,8 @@
 #include "VRPG.h"
 #include "world.h"
+#include "blocks.h"
+
+#define USE_SPOT_LIGHT 1
 
 // Declare our game instance
 VRPG game;
@@ -10,90 +13,100 @@ VRPG::VRPG()
 	runWorldUnitTests();
 }
 
-Material * createMaterial();
 Material * createMaterialBlocks();
 
-static float face_vertices_south[] =
+#define VERTEX_COMPONENTS 11
+static float face_vertices_south[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
-	0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
-	-0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
-	0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0,
+	-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	-0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 };
 
-static float face_vertices_up[] =
+static float face_vertices_up[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
-	0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
-	-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-	0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
+	-0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 };
 
-static float face_vertices_north[] =
+static float face_vertices_north[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0,
-	0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0,
-	-0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0,
-	0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0,
+	-0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	-0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 };
 
-static float face_vertices_down[] =
+static float face_vertices_down[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 0.0,
-	0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 0.0,
-	-0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 1.0,
-	0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 1.0,
+	-0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	-0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 };
 
-static float face_vertices_east[] =
+static float face_vertices_east[VERTEX_COMPONENTS * 4] =
 {
-	0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
-	0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
-	0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
+	0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 };
 
-static float face_vertices_west[] =
+static float face_vertices_west[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 0.0,
-	-0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0,
-	-0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0,
-	-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 1.0
+	-0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+	-0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+	-0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0,
+	-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0
 };
 
-static int face_indexes[] =
+static int face_indexes[6] =
 {
     0, 1, 2, 2, 1, 3
 };
 
-static int face_indexes_back[] =
+static int face_indexes_back[6] =
 {
     0, 2, 1, 2, 3, 1
 };
 
 static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0, int tileX, int tileY) {
 	for (int i = 0; i < 4; i++) {
-		float * srcvertex = src + i * 8;
-		float * dstvertex = data + i * 8;
-		for (int j = 0; j < 8; j++) {
+		float * srcvertex = src + i * VERTEX_COMPONENTS;
+		float * dstvertex = data + i * VERTEX_COMPONENTS;
+		for (int j = 0; j < 11; j++) {
 			float v = srcvertex[j];
-			if (j == 0)
+			switch (j) {
+			case 0: // x
 				v += x0;
-			else if (j == 1)
+				break;
+			case 1: // y
 				v += y0;
-			else if (j == 2)
+				break;
+			case 2: // z
 				v += z0;
-			else if (j == 6)
-				v = ((tileX + v * 16)) / 1024.0f;
-			else if (j == 7)
-				v = (1024 - (tileY + v * 16)) / 1024.0f;
+				break;
+			case 9: // tx.u
+				v = ((tileX + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DX;
+				break;
+			case 10: // tx.v
+				v = (BLOCK_TEXTURE_DY - (tileY + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DY;
+				break;
+			}
 			dstvertex[j] = v;
 		}
 	}
 }
 
-static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0, int tileX, int tileY) {
-	// data is 8 comp * 4 vert floats
+static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0, int tileIndex) {
+
+	int tileX = (tileIndex % BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
+	int tileY = (tileIndex / BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
+	// data is 11 comp * 4 vert floats
 	switch (face) {
     default:
     case SOUTH:
@@ -145,13 +158,10 @@ public:
 		//fprintf(log, "face %d: %d,%d,%d \t %d \t %d\n", faceCount, pos.x, pos.y, pos.z, cell, face);
 		int v0 = faceCount * 4;
 		faceCount++;
-		float * vptr = vertices.append(0.0f, 8 * 4);
+		float * vptr = vertices.append(0.0f, 11 * 4);
 		int * iptr = indexes.append(0, 6);
-		int texX = 1;
-		int texY = 1;
-		texX = texX * 20 + 1;
-		texY = texY * 20 + 1;
-		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texX, texY);
+		int texIndex = 0;
+		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texIndex);
         for (int i = 0; i < 6; i++)
             iptr[i] = v0 + face_indexes[i];
 //        float vbuf[8*4];
@@ -167,9 +177,10 @@ public:
 		{
 			VertexFormat::Element(VertexFormat::POSITION, 3),
 			VertexFormat::Element(VertexFormat::NORMAL, 3),
+			VertexFormat::Element(VertexFormat::COLOR, 3),
 			VertexFormat::Element(VertexFormat::TEXCOORD0, 2)
 		};
-		Mesh* mesh = Mesh::createMesh(VertexFormat(elements, 3), vertexCount, false);
+		Mesh* mesh = Mesh::createMesh(VertexFormat(elements, 4), vertexCount, false);
 		if (mesh == NULL)
 		{
 			GP_ERROR("Failed to create mesh.");
@@ -242,33 +253,8 @@ static Mesh* createCubeMesh(float size = 1.0f)
 	return mesh;
 }
 
-Material * createMaterial() {
-	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "DIRECTIONAL_LIGHT_COUNT 1");
-	if (material == NULL)
-	{
-		GP_ERROR("Failed to create material for model.");
-		return NULL;
-	}
-	// These parameters are normally set in a .material file but this example sets them programmatically.
-	// Bind the uniform "u_worldViewProjectionMatrix" to use the WORLD_VIEW_PROJECTION_MATRIX from the scene's active camera and the node that the model belongs to.
-	material->setParameterAutoBinding("u_worldViewProjectionMatrix", "WORLD_VIEW_PROJECTION_MATRIX");
-	material->setParameterAutoBinding("u_inverseTransposeWorldViewMatrix", "INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX");
-	// Set the ambient color of the material.
-	material->getParameter("u_ambientColor")->setValue(Vector3(0.2f, 0.2f, 0.2f));
-
-	// Bind the light's color and direction to the material.
-
-	// Load the texture from file.
-	Texture::Sampler* sampler = material->getParameter("u_diffuseTexture")->setValue("res/png/crate.png", true);
-	sampler->setFilterMode(Texture::LINEAR_MIPMAP_LINEAR, Texture::LINEAR);
-	material->getStateBlock()->setCullFace(true);
-	material->getStateBlock()->setDepthTest(true);
-	material->getStateBlock()->setDepthWrite(true);
-	return material;
-}
-
 Material * createMaterialBlocks() {
-	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "DIRECTIONAL_LIGHT_COUNT 1");
+	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "SPOT_LIGHT_COUNT 1");
 	if (material == NULL)
 	{
 		GP_ERROR("Failed to create material for model.");
@@ -279,12 +265,12 @@ Material * createMaterialBlocks() {
 	material->setParameterAutoBinding("u_worldViewProjectionMatrix", "WORLD_VIEW_PROJECTION_MATRIX");
 	material->setParameterAutoBinding("u_inverseTransposeWorldViewMatrix", "INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX");
 	// Set the ambient color of the material.
-	material->getParameter("u_ambientColor")->setValue(Vector3(0.2f, 0.2f, 0.2f));
+	material->getParameter("u_ambientColor")->setValue(Vector3(0.1f, 0.1f, 0.1f));
 
 	// Bind the light's color and direction to the material.
 
 	// Load the texture from file.
-	Texture::Sampler* sampler = material->getParameter("u_diffuseTexture")->setValue("res/png/blocks.png", true);
+	Texture::Sampler* sampler = material->getParameter("u_diffuseTexture")->setValue(BLOCK_TEXTURE_FILENAME, true);
 	sampler->setFilterMode(Texture::NEAREST_MIPMAP_LINEAR, Texture::NEAREST);
 	material->getStateBlock()->setCullFace(true);
 	material->getStateBlock()->setDepthTest(true);
@@ -296,31 +282,24 @@ static int cubeIndex = 1;
 
 Node * VRPG::createWorldNode(Mesh * mesh) {
 	Material * material = createMaterialBlocks();
-	material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
-	material->getParameter("u_directionalLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
 
+
+#if	USE_SPOT_LIGHT==1
+	material->getParameter("u_spotLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	material->getParameter("u_spotLightInnerAngleCos[0]")->setValue(_lightNode->getLight()->getInnerAngleCos());
+	material->getParameter("u_spotLightOuterAngleCos[0]")->setValue(_lightNode->getLight()->getOuterAngleCos());
+	material->getParameter("u_spotLightRangeInverse[0]")->setValue(_lightNode->getLight()->getRangeInverse());
+	material->getParameter("u_spotLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorView);
+	material->getParameter("u_spotLightPosition[0]")->bindValue(_lightNode, &Node::getTranslationView);
+#else
+	material->getParameter("u_pointLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	material->getParameter("u_pointLightPosition[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
+	material->getParameter("u_pointLightRangeInverse[0]")->setValue(_lightNode->getLight()->getRangeInverse());
+#endif
 	Model* cubeModel = Model::create(mesh);
 	Node * cubeNode = Node::create("world");
 	cubeModel->setMaterial(material);
 	cubeNode->setDrawable(cubeModel);
-	return cubeNode;
-}
-
-Node * VRPG::createCube(int x, int y, int z) {
-	Material * material = createMaterial();
-	material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
-	material->getParameter("u_directionalLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
-
-	char nodeName[64];
-	sprintf(nodeName, "cube%d", cubeIndex++);
-
-	Model* cubeModel = Model::create(_cubeMesh);
-	Node * cubeNode = Node::create(nodeName);
-	cubeModel->setMaterial(material);
-	cubeNode->setDrawable(cubeModel);
-	cubeNode->setTranslationX(x);
-	cubeNode->setTranslationY(y);
-	cubeNode->setTranslationZ(z);
 	return cubeNode;
 }
 
@@ -357,39 +336,26 @@ void VRPG::initialize()
 
 	// Move the camera to look at the origin.
 	cameraNode->translate(0, 3, 0);
-	cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
+	//cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
-	Light* light = Light::createDirectional(0.75f, 0.75f, 0.75f);
+	//Light* light = Light::createDirectional(0.75f, 0.75f, 0.75f);
+
+#if	USE_SPOT_LIGHT==1
+	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 19.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
+#else
+	Light* light = Light::createPoint(0.75f, 0.75f, 0.75f, 8.0f);
+#endif
 	Node* lightNode = _scene->addNode("light");
 	lightNode->setLight(light);
+	lightNode->translate(0, 5, 0);
+	lightNode->rotateX(MATH_DEG_TO_RAD(-5.25f));
+	//lightNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 	_light = light;
 	_lightNode = lightNode;
 	// Release the light because the node now holds a reference to it.
 	SAFE_RELEASE(light);
-	lightNode->rotateX(MATH_DEG_TO_RAD(-45.0f));
-
-	// Create the material for the cube model and assign it to the first mesh part.
-	Material * material = createMaterial();
-	material->getParameter("u_directionalLightColor[0]")->setValue(lightNode->getLight()->getColor());
-	material->getParameter("u_directionalLightDirection[0]")->bindValue(lightNode, &Node::getForwardVectorWorld);
-
-	// Create the cube mesh and model.
-	Mesh* cubeMesh = createCubeMesh();
-	_cubeMesh = cubeMesh;
-	Model* cubeModel = Model::create(cubeMesh);
-	// Release the mesh because the model now holds a reference to it.
-
-	_group1 = _scene->addNode("group1");
-	_cubeNode = createCube(0, 0, 0);
-	_cubeNode->rotateY(MATH_PIOVER4);
-	_group1->addChild(_cubeNode);
-	_cubeNode2 = createCube(0, 2, 0);
-	_cubeNode2->rotateY(MATH_PIOVER4 / 4);
-	_cubeNode2->scaleX(0.5f);
-	_cubeNode2->translateZ(0.5f);
-	_group1->addChild(_cubeNode2);
-	SAFE_RELEASE(cubeMesh);
+	//lightNode->rotateX(MATH_DEG_TO_RAD(-25.0f));
 
 	_group2 = _scene->addNode("group2");
 #if 0
@@ -416,6 +382,10 @@ void VRPG::initialize()
 	world->setCell(-2, 1, -7, 8);
 	world->setCell(-2, 2, -7, 8);
 	world->setCell(-2, 3, -7, 8);
+	world->setCell(-20, 7, 4, 8);
+	world->setCell(20, 6, 9, 8);
+	world->setCell(5, 7, -15, 8);
+	world->setCell(5, 7, 15, 8);
 #if 0
     world->setCell(0, 7, 0, 1);
     world->setCell(5, 7, 0, 1);
@@ -478,8 +448,12 @@ void VRPG::update(float elapsedTime)
 	//_cubeNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
 	//_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
 	//_cubeNode2->rotateX(MATH_DEG_TO_RAD((float)elapsedTime / 1000.0f * 180.0f));
-	if (animation)
-		_group2->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 5000.0f * 180.0f));
+	if (animation) {
+		_cameraNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 15000.0f * 180.0f));
+		_lightNode->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 22356.0f * 180.0f));
+		_lightNode->rotateX(MATH_DEG_TO_RAD((float)elapsedTime / 62356.0f * 180.0f));
+		//_group2->rotateY(MATH_DEG_TO_RAD((float)elapsedTime / 5000.0f * 180.0f));
+	}
 }
 
 void VRPG::render(float elapsedTime)

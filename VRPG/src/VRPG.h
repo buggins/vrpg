@@ -56,14 +56,10 @@ private:
      */
     bool drawScene(Node* node);
 
-	Node * createCube(int x, int y, int z);
 	Node * createWorldNode(Mesh * mesh);
 
     Scene* _scene;
-	Node * _group1;
     Node * _group2;
-    Node * _cubeNode;
-	Node * _cubeNode2;
 	Light* _light;
 	Node* _lightNode;
 	Mesh * _cubeMesh;
