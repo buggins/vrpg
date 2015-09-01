@@ -19,7 +19,7 @@ enum BlockType {
 
 struct BlockDef {
 	int id;
-	char * name;
+	const char * name;
 	BlockType type;
 	int txIndex;
 };

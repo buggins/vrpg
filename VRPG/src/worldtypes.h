@@ -1,5 +1,8 @@
 #ifndef WORLDTYPES_H_INCLUDED
 #define WORLDTYPES_H_INCLUDED
+
+#include <stdlib.h>
+
 typedef unsigned char cell_t;
 
 #ifdef _WIN32

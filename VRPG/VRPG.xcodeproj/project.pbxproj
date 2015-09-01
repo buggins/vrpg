@@ -33,6 +33,7 @@
 		5B61612614CCC24C0073B857 /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 42C932ED1491A4CB0098216A /* icon.png */; };
 		5B61612714CCC24C0073B857 /* res in Resources */ = {isa = PBXBuildFile; fileRef = 42C932F21491A53E0098216A /* res */; };
 		86541C5B1B90D1250027169E /* world.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 86541C581B90D1250027169E /* world.cpp */; };
+		86541C631B9614920027169E /* blocks.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 86541C611B9614920027169E /* blocks.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,8 @@
 		86541C581B90D1250027169E /* world.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = world.cpp; sourceTree = "<group>"; };
 		86541C591B90D1250027169E /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = world.h; sourceTree = "<group>"; };
 		86541C5A1B90D1250027169E /* worldtypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = worldtypes.h; sourceTree = "<group>"; };
+		86541C611B9614920027169E /* blocks.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blocks.cpp; sourceTree = "<group>"; };
+		86541C621B9614920027169E /* blocks.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blocks.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +170,8 @@
 		42C932C61491A0DB0098216A /* src */ = {
 			isa = PBXGroup;
 			children = (
+				86541C611B9614920027169E /* blocks.cpp */,
+				86541C621B9614920027169E /* blocks.h */,
 				86541C581B90D1250027169E /* world.cpp */,
 				86541C591B90D1250027169E /* world.h */,
 				86541C5A1B90D1250027169E /* worldtypes.h */,
@@ -364,6 +369,7 @@
 			files = (
 				86541C5B1B90D1250027169E /* world.cpp in Sources */,
 				42C932F11491A5160098216A /* VRPG.cpp in Sources */,
+				86541C631B9614920027169E /* blocks.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

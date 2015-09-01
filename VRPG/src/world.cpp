@@ -9,6 +9,9 @@
 #include <malloc.h>
 #endif
 #endif
+#ifdef __APPLE__
+#include <sys/time.h>
+#endif
 
 #if !defined(__SYMBIAN32__) && defined(_WIN32)
 extern "C" {
@@ -23,6 +26,8 @@ static lUInt64 __timeStart;
 static lUInt64 __timeAbsolute;
 static lUInt64 __startTimeMillis;
 #endif
+
+void CRReinitTimer();
 
 void CRReinitTimer() {
 #ifdef _WIN32
@@ -43,11 +48,6 @@ void CRReinitTimer() {
 
 
 lUInt64 GetCurrentTimeMillis() {
-#if defined(LINUX) || defined(ANDROID) || defined(_LINUX)
-	timeval ts;
-	gettimeofday(&ts, NULL);
-	return ts.tv_sec * (lUInt64)1000 + ts.tv_usec / 1000;
-#else
 #ifdef _WIN32
 	if (!__timerInitialized) {
 		CRReinitTimer();
@@ -60,8 +60,9 @@ lUInt64 GetCurrentTimeMillis() {
 		return __startTimeMillis + (lUInt64)(__timeAbsolute - __timeStart);
 	}
 #else
-#error * You should define GetCurrentTimeMillis() *
-#endif
+    timeval ts;
+    gettimeofday(&ts, NULL);
+    return ts.tv_sec * (lUInt64)1000 + ts.tv_usec / 1000;
 #endif
 }
 
@@ -333,6 +334,9 @@ void disposeChunkStripe(ChunkStripe * p) {
 }
 
 #if UNIT_TESTS==1
+void testVectors();
+
+
 void testVectors() {
 	Vector3d v1(1, 0, 0);
 	Direction d1(1, 0, 0);
