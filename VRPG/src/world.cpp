@@ -67,6 +67,9 @@ lUInt64 GetCurrentTimeMillis() {
 
 
 cell_t World::getCell(int x, int y, int z) {
+	y += CHUNK_DY / 2;
+	if (y < 0)
+		return 3;
 	int chunkx = x >> CHUNK_DX_SHIFT;
 	int chunkz = z >> CHUNK_DX_SHIFT;
 	Chunk * p;
@@ -84,6 +87,7 @@ cell_t World::getCell(int x, int y, int z) {
 	return p->get(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK);
 }
 void World::setCell(int x, int y, int z, cell_t value) {
+	y += CHUNK_DY / 2;
 	int chunkx = x >> CHUNK_DX_SHIFT;
 	int chunkz = z >> CHUNK_DX_SHIFT;
 	Chunk * p;

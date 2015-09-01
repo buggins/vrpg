@@ -160,7 +160,8 @@ public:
 		faceCount++;
 		float * vptr = vertices.append(0.0f, 11 * 4);
 		int * iptr = indexes.append(0, 6);
-		int texIndex = 0;
+		BlockDef * def = BLOCK_DEFS + cell;
+		int texIndex = def->txIndex;
 		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texIndex);
         for (int i = 0; i < 6; i++)
             iptr[i] = v0 + face_indexes[i];
@@ -317,13 +318,55 @@ public:
 	}
 };
 
+void VRPG::initWorld() {
+	World * world = new World();
+
+	world->getCamPosition().pos = Vector3d(0, 3, 3);
+	world->getCamPosition().direction.set(EAST);
+
+	world->setCell(-5, 3, 5, 1);
+	world->setCell(-2, 1, -7, 8);
+	world->setCell(-2, 2, -7, 8);
+	world->setCell(-2, 3, -7, 8);
+	world->setCell(-20, 7, 4, 8);
+	world->setCell(20, 6, 9, 8);
+	world->setCell(5, 7, -15, 8);
+	world->setCell(5, 7, 15, 8);
+#if 0
+	world->setCell(0, 7, 0, 1);
+	world->setCell(5, 7, 0, 1);
+	world->setCell(5, 7, 5, 1);
+	world->setCell(-5, 7, -5, 1);
+	world->setCell(-5, 7, 5, 1);
+#else
+	for (int x = -10; x <= 10; x++)
+		for (int z = -10; z <= 10; z++) {
+			world->setCell(x, 0, z, 1);
+			world->setCell(x, 7, z, 1);
+		}
+	for (int x = -10; x <= 10; x++) {
+		world->setCell(x, 1, -10, 2);
+		world->setCell(x, 1, 10, 2);
+		world->setCell(-10, 1, x, 3);
+		world->setCell(10, 1, x, 3);
+	}
+#endif
+	world->setCell(3, 0, -6, 0); // hole
+	world->setCell(3, 0, -7, 0); // hole
+	world->setCell(4, 0, -6, 0); // hole
+	world->setCell(4, 0, -7, 0); // hole
+	_world = world;
+}
+
 void VRPG::initialize()
 {
+	initWorld();
+
 	// Create a new empty scene.
 	_scene = Scene::create();
 
 	// Create the camera.
-	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.5f, 50.0f);
+	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.5f, 100.0f);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
@@ -335,14 +378,14 @@ void VRPG::initialize()
 	SAFE_RELEASE(camera);
 
 	// Move the camera to look at the origin.
-	cameraNode->translate(0, 3, 0);
+	//cameraNode->translate(0, 5, 0);
 	//cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
 	//Light* light = Light::createDirectional(0.75f, 0.75f, 0.75f);
 
 #if	USE_SPOT_LIGHT==1
-	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 19.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
+	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 5.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
 #else
 	Light* light = Light::createPoint(0.75f, 0.75f, 0.75f, 8.0f);
 #endif
@@ -373,42 +416,6 @@ void VRPG::initialize()
 	}
 #endif
 
-	World * world = new World();
-
-	world->getCamPosition().pos = Vector3d(0, 3, 3);
-    world->getCamPosition().direction.set(EAST);
-
-    world->setCell(-5, 3, 5, 1);
-	world->setCell(-2, 1, -7, 8);
-	world->setCell(-2, 2, -7, 8);
-	world->setCell(-2, 3, -7, 8);
-	world->setCell(-20, 7, 4, 8);
-	world->setCell(20, 6, 9, 8);
-	world->setCell(5, 7, -15, 8);
-	world->setCell(5, 7, 15, 8);
-#if 0
-    world->setCell(0, 7, 0, 1);
-    world->setCell(5, 7, 0, 1);
-    world->setCell(5, 7, 5, 1);
-    world->setCell(-5, 7, -5, 1);
-    world->setCell(-5, 7, 5, 1);
-#else
-	for (int x = -10; x <= 10; x++)
-		for (int z = -10; z <= 10; z++) {
-			world->setCell(x, 0, z, 1);
-			world->setCell(x, 7, z, 1);
-		}
-	for (int x = -10; x <= 10; x++) {
-		world->setCell(x, 1, -10, 2);
-		world->setCell(x, 1, 10, 2);
-		world->setCell(-10, 1, x, 3);
-		world->setCell(10, 1, x, 3);
-	}
-#endif
-	world->setCell(3, 0, -6, 0); // hole
-	world->setCell(3, 0, -7, 0); // hole
-	world->setCell(4, 0, -6, 0); // hole
-	world->setCell(4, 0, -7, 0); // hole
 
 
 	//TestVisitor * visitor = new TestVisitor();
@@ -419,23 +426,20 @@ void VRPG::initialize()
 
 	MeshVisitor * meshVisitor = new MeshVisitor();
 	//world->visitVisibleCells(world->getCamPosition(), meshVisitor);
-	world->visitVisibleCellsAllDirections(world->getCamPosition(), meshVisitor);
+	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
-	Node * worldNode = createWorldNode(worldMesh);
+	_worldNode = createWorldNode(worldMesh);
 	SAFE_RELEASE(worldMesh);
 	delete meshVisitor;
 
-	_group2->addChild(worldNode);
-
-
-
-	delete world;
+	_group2->addChild(_worldNode);
 
 }
 
 void VRPG::finalize()
 {
     SAFE_RELEASE(_scene);
+	delete _world;
 }
 
 static bool animation = false;
@@ -461,6 +465,34 @@ void VRPG::render(float elapsedTime)
     // Clear the color and depth buffers
     clear(CLEAR_COLOR_DEPTH, Vector4::zero(), 1.0f, 0);
 
+	_cameraNode->setRotation(Vector3(1, 0, 0), 0);
+	switch (_world->getCamPosition().direction.dir) {
+	case WEST:
+		_cameraNode->rotateY(MATH_DEG_TO_RAD(90));
+		break;
+	case EAST:
+		_cameraNode->rotateY(MATH_DEG_TO_RAD(-90));
+		break;
+	case NORTH:
+		break;
+	case SOUTH:
+		_cameraNode->rotateY(MATH_DEG_TO_RAD(180));
+		break;
+	}
+
+	Position p = _world->getCamPosition();
+	p.pos -= p.direction.forward;
+	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
+
+	MeshVisitor * meshVisitor = new MeshVisitor();
+	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
+	Mesh * worldMesh = meshVisitor->createMesh();
+	Node * worldNode = createWorldNode(worldMesh);
+	_group2->removeAllChildren();
+	SAFE_RELEASE(worldMesh);
+	delete meshVisitor;
+	_group2->addChild(worldNode);
+
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
 }
@@ -479,12 +511,37 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 {
     if (evt == Keyboard::KEY_PRESS)
     {
+		Position * pos = &_world->getCamPosition();
         switch (key)
         {
         case Keyboard::KEY_ESCAPE:
             exit();
             break;
-        }
+		case Keyboard::KEY_W:
+			pos->pos += pos->direction.forward;
+			break;
+		case Keyboard::KEY_S:
+			pos->pos -= pos->direction.forward;
+			break;
+		case Keyboard::KEY_A:
+			pos->pos += pos->direction.left;
+			break;
+		case Keyboard::KEY_D:
+			pos->pos += pos->direction.right;
+			break;
+		case Keyboard::KEY_Q:
+			pos->direction.turnLeft();
+			break;
+		case Keyboard::KEY_E:
+			pos->direction.turnRight();
+			break;
+		case Keyboard::KEY_Z:
+			pos->pos += pos->direction.down;
+			break;
+		case Keyboard::KEY_C:
+			pos->pos += pos->direction.up;
+			break;
+		}
     }
 }
 

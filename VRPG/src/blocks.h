@@ -11,12 +11,19 @@
 #define BLOCK_SPRITE_OFFSET 21
 #define BLOCK_TEXTURE_SPRITES_PER_LINE 50
 
+enum BlockType {
+	INVISIBLE,
+	OPAQUE,
+	OPAQUE_SEPARATE_TX,
+};
+
 struct BlockDef {
 	int id;
 	char * name;
-	bool opaque;
+	BlockType type;
 	int txIndex;
 };
+
 
 extern BlockDef BLOCK_DEFS[];
 

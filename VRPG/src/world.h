@@ -136,7 +136,7 @@ private:
 	int lastChunkZ;
 	Chunk * lastChunk;
 public:
-	World() : maxVisibleRange(32), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL) {
+	World() : maxVisibleRange(64), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL) {
 	}
 	~World() {
 

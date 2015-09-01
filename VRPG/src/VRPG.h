@@ -2,6 +2,7 @@
 #define VRPG_H_
 
 #include "gameplay.h"
+#include "world.h"
 
 using namespace gameplay;
 
@@ -64,7 +65,13 @@ private:
 	Node* _lightNode;
 	Mesh * _cubeMesh;
 	Node* _cameraNode;
-    bool _wireframe;
+	Node* _worldNode;
+	Model* _worldModel;
+	bool _wireframe;
+
+	World * _world;
+
+	void initWorld();
 };
 
 #endif
