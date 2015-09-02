@@ -292,7 +292,7 @@ struct VolumeVisitor {
 	void visitAll() {
 		newcells.append(Vector2d(volume.getIndex(Vector3d()), MASK_EX_ALL));
 		cell_t nearCells[26];
-		int directions[26];
+		DirEx directions[26];
 		for (distance = 1; distance < volume.size(); distance++) {
 			newcells.swap(oldcells);
 			newcells.clear();
@@ -301,7 +301,37 @@ struct VolumeVisitor {
 				int index = pt.x;
 				int mask = pt.y;
 				cell_t currentCell = volume.get(index);
-				int dirCount = volume.getNear(index, mask, nearCells, directions);
+				int emptyCellMask;
+				int dirCount = volume.getNear(index, mask, nearCells, directions, emptyCellMask);
+				for (int j = 0; j < dirCount; j++) {
+					DirEx dir = directions[j];
+					int newIndex = volume.moveIndex(index, dir);
+					cell_t newCell = nearCells[dir];
+					if (newCell != VISITED_CELL) {
+						if (newCell) {
+							// occupied cell
+							if (dir < 6) {
+								// main direction - visit visible face
+							}
+						} else {
+							// empty cell
+							bool reachableUsingMainDirectionSteps = (emptyCellMask & DIR_TO_MASK[dir]) != 0;
+							if (reachableUsingMainDirectionSteps) {
+								// new mask
+								int newMask = mask & NEAR_DIRECTIONS[dir]; // exclude opposite dirs
+
+								if ((newMask & ~emptyCellMask) != newMask) {
+
+								}
+
+								// limit directions in newMask
+								newcells.append(Vector2d(newIndex, newMask));
+								// mark as visited
+								volume.put(newIndex, VISITED_CELL);
+							}
+						}
+					}
+				}
 				//MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN;
 			}
 		}

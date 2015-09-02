@@ -12,13 +12,17 @@ void VolumeData::putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe
 
 #define UPDATE_CELL(dir) \
 				if (mask & (1 << dir)) { \
-					cells[dir] = _data[index + directionDelta[dir]]; \
+					cell_t cell = _data[index + directionDelta[dir]]; \
+					cells[dir] = cell; \
 					dirs[flagCount++] = dir; \
+					if (!cell || cell == VISITED_CELL) \
+						emptyCellMask |= (1<<dir); \
 				}
 
 
 /// return number of found directions for passed flags, cells are returned using DirEx index
-int VolumeData::getNear(int index, int mask, cell_t cells[], int dirs[]) {
+int VolumeData::getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask) {
+	emptyCellMask = 0;
 	int flagCount = 0;
 	if (mask & (MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP 
 			| MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP)) {

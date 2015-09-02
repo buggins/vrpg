@@ -110,6 +110,7 @@ enum DirMaskEx {
 	MASK_EX_ALL = (1<<26) - 1,
 };
 
+// DirEx to DirMask
 const DirMask DIR_TO_MASK[] = {
 	MASK_NORTH,
 	MASK_SOUTH,
@@ -137,6 +138,36 @@ const DirMask DIR_TO_MASK[] = {
 	MASK_SOUTH_EAST_UP,
 	MASK_SOUTH_WEST_DOWN,
 	MASK_SOUTH_EAST_DOWN
+};
+
+// DirEx to near direction mask
+const int NEAR_DIRECTIONS[] = {
+	MASK_EX_NORTH | MASK_EX_NORTH_EAST | MASK_EX_NORTH_WEST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_DOWN | MASK_EX_NORTH_WEST_DOWN,
+	MASK_EX_SOUTH | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_DOWN | MASK_EX_SOUTH_WEST_DOWN,
+	MASK_EX_WEST | MASK_EX_NORTH_WEST | MASK_EX_SOUTH_WEST | MASK_EX_WEST_UP | MASK_EX_WEST_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_SOUTH_WEST_DOWN,
+	MASK_EX_EAST | MASK_EX_NORTH_EAST | MASK_EX_SOUTH_EAST | MASK_EX_EAST_UP | MASK_EX_EAST_DOWN | MASK_EX_NORTH_EAST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_EAST_DOWN,
+	MASK_EX_UP | MASK_EX_NORTH_UP | MASK_EX_SOUTH_UP | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_NORTH_WEST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_SOUTH_EAST_UP,
+	MASK_EX_DOWN | MASK_EX_NORTH_DOWN | MASK_EX_SOUTH_DOWN | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST_DOWN | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_EAST_DOWN,
+	MASK_EX_WEST_UP,
+	MASK_EX_EAST_UP,
+	MASK_EX_WEST_DOWN,
+	MASK_EX_EAST_DOWN,
+	MASK_EX_NORTH_WEST,
+	MASK_EX_NORTH_EAST,
+	MASK_EX_NORTH_UP,
+	MASK_EX_NORTH_DOWN,
+	MASK_EX_NORTH_WEST_UP,
+	MASK_EX_NORTH_EAST_UP,
+	MASK_EX_NORTH_WEST_DOWN,
+	MASK_EX_NORTH_EAST_DOWN,
+	MASK_EX_SOUTH_WEST,
+	MASK_EX_SOUTH_EAST,
+	MASK_EX_SOUTH_UP,
+	MASK_EX_SOUTH_DOWN,
+	MASK_EX_SOUTH_WEST_UP,
+	MASK_EX_SOUTH_EAST_UP,
+	MASK_EX_SOUTH_WEST_DOWN,
+	MASK_EX_SOUTH_EAST_DOWN
 };
 
 #ifdef _WIN32
@@ -597,7 +628,7 @@ struct VolumeData {
 	}
 
 	/// put cell w/o bounds checking, (0,0,0) is center of array
-	void put(Vector3d v, cell_t cell) {
+	inline void put(Vector3d v, cell_t cell) {
 		_data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)] = cell;
 	}
 
@@ -605,33 +636,34 @@ struct VolumeData {
 	void putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe);
 
 	/// put cell w/o bounds checking
-	void put(int index, cell_t cell) {
+	inline void put(int index, cell_t cell) {
 		_data[index] = cell;
 	}
 
 	/// read w/o bounds checking, (0,0,0) is center of array
-	cell_t get(Vector3d v) {
+	inline cell_t get(Vector3d v) {
 		return _data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)];
 	}
 
-	cell_t get(int index) {
+	inline cell_t get(int index) {
 		return _data[index];
 	}
 
 	/// get array index for point - (0,0,0) is center
-	int getIndex(Vector3d v) {
+	inline int getIndex(Vector3d v) {
 		return ((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST);
 	}
 
-	int moveIndex(int oldIndex, DirMask direction) {
+	inline int moveIndex(int oldIndex, DirMask direction) {
 		return oldIndex + directionDelta[direction];
 	}
-	int moveIndex(int oldIndex, DirEx direction) {
+	
+	inline int moveIndex(int oldIndex, DirEx direction) {
 		return oldIndex + directionDelta[DIR_TO_MASK[direction]];
 	}
 
 	/// return number of found directions for passed flags, cells are returned using DirEx index
-	int getNear(int index, int mask, cell_t cells[], int dirs[]);
+	int getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask);
 };
 
 #endif// WORLDTYPES_H_INCLUDED
