@@ -18,7 +18,7 @@ enum Dir {
 	DOWN,
 };
 
-/// Extended Dir - directions can be combined; first 6 items of DirEx match items of Dir
+/// Extended Dir simple Dir directions can be combined; first 6 items of DirEx match items of Dir - 26 directions (3*3*3-1) 
 enum DirEx {
 	DIR_NORTH = 0,
 	DIR_SOUTH,
@@ -49,6 +49,7 @@ enum DirEx {
 	DIR_MAX,
 };
 
+// 26 direction masks based on Dir
 enum DirMask {
 	MASK_NORTH = (1 << NORTH),
 	MASK_SOUTH = (1 << SOUTH),
@@ -76,6 +77,37 @@ enum DirMask {
 	MASK_SOUTH_EAST_UP = MASK_SOUTH | MASK_EAST | MASK_UP,
 	MASK_SOUTH_WEST_DOWN = MASK_SOUTH | MASK_WEST | MASK_DOWN,
 	MASK_SOUTH_EAST_DOWN = MASK_SOUTH | MASK_EAST | MASK_DOWN,
+};
+
+/// 26 (3*3*3-1) 3d direction masks - combinatino of DirEx
+enum DirMaskEx {
+	MASK_EX_NORTH = (1 << DIR_NORTH),
+	MASK_EX_SOUTH = (1 << DIR_SOUTH),
+	MASK_EX_WEST = (1 << DIR_WEST),
+	MASK_EX_EAST = (1 << DIR_EAST),
+	MASK_EX_UP = (1 << DIR_UP),
+	MASK_EX_DOWN = (1 << DIR_DOWN),
+	MASK_EX_WEST_UP = (1 << DIR_WEST_UP),
+	MASK_EX_EAST_UP = (1 << DIR_EAST_UP),
+	MASK_EX_WEST_DOWN = (1 << DIR_WEST_DOWN),
+	MASK_EX_EAST_DOWN = (1 << DIR_EAST_DOWN),
+	MASK_EX_NORTH_WEST = (1 << DIR_NORTH_WEST),
+	MASK_EX_NORTH_EAST = (1 << DIR_NORTH_EAST),
+	MASK_EX_NORTH_UP = (1 << DIR_NORTH_UP),
+	MASK_EX_NORTH_DOWN = (1 << DIR_NORTH_DOWN),
+	MASK_EX_NORTH_WEST_UP = (1 << DIR_NORTH_WEST_UP),
+	MASK_EX_NORTH_EAST_UP = (1 << DIR_NORTH_EAST_UP),
+	MASK_EX_NORTH_WEST_DOWN = (1 << DIR_NORTH_WEST_DOWN),
+	MASK_EX_NORTH_EAST_DOWN = (1 << DIR_NORTH_EAST_DOWN),
+	MASK_EX_SOUTH_WEST = (1 << DIR_SOUTH_WEST),
+	MASK_EX_SOUTH_EAST = (1 << DIR_SOUTH_EAST),
+	MASK_EX_SOUTH_UP = (1 << DIR_SOUTH_UP),
+	MASK_EX_SOUTH_DOWN = (1 << DIR_SOUTH_DOWN),
+	MASK_EX_SOUTH_WEST_UP = (1 << DIR_SOUTH_WEST_UP),
+	MASK_EX_SOUTH_EAST_UP = (1 << DIR_SOUTH_EAST_UP),
+	MASK_EX_SOUTH_WEST_DOWN = (1 << DIR_SOUTH_WEST_DOWN),
+	MASK_EX_SOUTH_EAST_DOWN = (1 << DIR_SOUTH_EAST_DOWN),
+	MASK_EX_ALL = (1<<26) - 1,
 };
 
 const DirMask DIR_TO_MASK[] = {
@@ -564,26 +596,31 @@ struct VolumeData {
 		memset(_data, 0, sizeof(cell_t) * DATA_SIZE);
 	}
 
-	/// put cell w/o bounds checking
+	/// put cell w/o bounds checking, (0,0,0) is center of array
 	void put(Vector3d v, cell_t cell) {
-		_data[(v.y << (ROW_SIZE * 2)) | (v.z << ROW_SIZE) | v.x] = cell;
+		_data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)] = cell;
 	}
+
+	/// v is zero based destination coordinates
+	void putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe);
 
 	/// put cell w/o bounds checking
 	void put(int index, cell_t cell) {
 		_data[index] = cell;
 	}
 
-	/// v is zero based destination coordinates
-	void putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe);
-
-	/// read w/o bounds checking
+	/// read w/o bounds checking, (0,0,0) is center of array
 	cell_t get(Vector3d v) {
-		return _data[(v.y << (ROW_SIZE * 2)) | (v.z << ROW_SIZE) | v.x];
+		return _data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)];
 	}
 
 	cell_t get(int index) {
 		return _data[index];
+	}
+
+	/// get array index for point - (0,0,0) is center
+	int getIndex(Vector3d v) {
+		return ((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST);
 	}
 
 	int moveIndex(int oldIndex, DirMask direction) {
@@ -592,6 +629,9 @@ struct VolumeData {
 	int moveIndex(int oldIndex, DirEx direction) {
 		return oldIndex + directionDelta[DIR_TO_MASK[direction]];
 	}
+
+	/// return number of found directions for passed flags, cells are returned using DirEx index
+	int getNear(int index, int mask, cell_t cells[], int dirs[]);
 };
 
 #endif// WORLDTYPES_H_INCLUDED

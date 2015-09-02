@@ -276,6 +276,38 @@ struct VisitorHelper {
 	}
 };
 
+struct VolumeVisitor {
+	VolumeData & volume;
+	int distance;
+	Vector2dArray oldcells;
+	Vector2dArray newcells;
+	CellVisitor * visitor;
+	FILE * log;
+	VolumeVisitor(VolumeData & data, CellVisitor * v) : volume(data), visitor(v) {
+		log = fopen("visitor2.log", "at");
+	}
+	~VolumeVisitor() {
+		fclose(log);
+	}
+	void visitAll() {
+		newcells.append(Vector2d(volume.getIndex(Vector3d()), MASK_EX_ALL));
+		cell_t nearCells[26];
+		int directions[26];
+		for (distance = 1; distance < volume.size(); distance++) {
+			newcells.swap(oldcells);
+			newcells.clear();
+			for (int i = 0; i < oldcells.length(); i++) {
+				Vector2d pt = oldcells[i];
+				int index = pt.x;
+				int mask = pt.y;
+				cell_t currentCell = volume.get(index);
+				int dirCount = volume.getNear(index, mask, nearCells, directions);
+				//MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN;
+			}
+		}
+	}
+};
+
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
