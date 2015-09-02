@@ -98,5 +98,8 @@
     <ClCompile Include="src\blocks.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\worldtypes.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include "worldtypes.h"
 
+const int MAX_VIEW_DISTANCE_BITS = 7;
+const int MAX_VIEW_DISTANCE = (1 << MAX_VIEW_DISTANCE_BITS);
+
 // Layer is 16x16 (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells
 #define CHUNK_DX_SHIFT 4
 #define CHUNK_DX (1<<CHUNK_DX_SHIFT)
@@ -12,9 +15,6 @@
 #define CHUNK_DY_SHIFT 8
 #define CHUNK_DY (1<<CHUNK_DY_SHIFT)
 #define CHUNK_DY_MASK (CHUNK_DY - 1)
-
-const cell_t NO_CELL = 0;
-const cell_t END_OF_WORLD = 255;
 
 // Layer is 256x16x16 CHUNK_DY layers = CHUNK_DY * (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells
 struct ChunkLayer {
@@ -25,6 +25,11 @@ public:
 		for (int x = 0; x < CHUNK_DX; x++)
 			for (int z = 0; z < CHUNK_DX; z++)
 				cells[(z << CHUNK_DX_SHIFT) + x] = NO_CELL;
+	}
+	inline cell_t* ptr(int x, int z) {
+		//if (!this)
+		//	return NO_CELL;
+		return cells + (z << CHUNK_DX_SHIFT) + x;
 	}
 	inline cell_t get(int x, int z) {
 		//if (!this)
@@ -68,6 +73,9 @@ public:
 	static void dispose(Chunk * p) {
 		delete p;
 	}
+
+	/// srcpos coords x, z are in chunk bounds
+	void getCells(Vector3d srcpos, Vector3d dstpos, Vector3d size, VolumeData & buf);
 };
 
 typedef InfiniteArray<Chunk*, (Chunk*)NULL, Chunk::dispose> ChunkStripe;
@@ -135,14 +143,20 @@ private:
 	int lastChunkX;
 	int lastChunkZ;
 	Chunk * lastChunk;
+	VolumeData volumeSnapshot;
+	Vector3d volumePos;
+	bool volumeSnapshotInvalid;
 public:
-	World() : maxVisibleRange(64), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL) {
+	World() : maxVisibleRange(MAX_VIEW_DISTANCE), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL), volumeSnapshot(MAX_VIEW_DISTANCE_BITS), volumeSnapshotInvalid(true) {
 	}
 	~World() {
 
 	}
+	void updateVolumeSnapshot();
+	void getCellsNear(Vector3d v, VolumeData & buf);
 	void visitVisibleCells(Position & position, CellVisitor * visitor, bool visitThisPosition = true);
 	void visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor);
+	void visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor);
 	Position & getCamPosition() { return camPosition; }
 	cell_t getCell(Vector3d v) {
 		return getCell(v.x, v.y, v.z);

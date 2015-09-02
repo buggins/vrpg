@@ -287,7 +287,11 @@ void VRPG::initWorld() {
 		}
 	for (int x = -10; x <= 10; x++) {
 		world->setCell(x, 1, -10, 2);
+		world->setCell(x, 2, -10, 2);
+		world->setCell(x, 3, -10, 2);
 		world->setCell(x, 1, 10, 2);
+		world->setCell(x, 2, 10, 2);
+		world->setCell(x, 3, 10, 2);
 		world->setCell(-10, 1, x, 3);
 		world->setCell(10, 1, x, 3);
 	}
@@ -307,7 +311,7 @@ void VRPG::initialize()
 	_scene = Scene::create();
 
 	// Create the camera.
-	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.5f, 100.0f);
+	Camera* camera = Camera::createPerspective(80.0f, getAspectRatio(), 0.4f, MAX_VIEW_DISTANCE + 1);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
@@ -369,6 +373,7 @@ void VRPG::initialize()
 	//world->visitVisibleCells(world->getCamPosition(), meshVisitor);
 	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
+	_worldMesh = worldMesh;
 	_worldNode = createWorldNode(worldMesh);
 	SAFE_RELEASE(worldMesh);
 	delete meshVisitor;
@@ -427,13 +432,24 @@ void VRPG::render(float elapsedTime)
 	p.pos -= p.direction.forward;
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 
+#define REVISIT_EACH_RENDER 0
+
 	MeshVisitor * meshVisitor = new MeshVisitor();
+#if REVISIT_EACH_RENDER==1
 	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
-	Node * worldNode = createWorldNode(worldMesh);
-	_group2->removeAllChildren();
+	_worldMesh = worldMesh;
+#else
+	_world->visitVisibleCellsAllDirectionsFast(_world->getCamPosition(), meshVisitor);
+#endif
+	Node * worldNode = createWorldNode(_worldMesh);
+#if REVISIT_EACH_RENDER==1
 	SAFE_RELEASE(worldMesh);
+#endif
 	delete meshVisitor;
+
+	_group2->removeAllChildren();
+
 	_group2->addChild(worldNode);
 
     // Visit all the nodes in the scene for drawing

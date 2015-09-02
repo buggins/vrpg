@@ -276,6 +276,11 @@ struct VisitorHelper {
 	}
 };
 
+void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
+	volumeSnapshotInvalid = true;
+	updateVolumeSnapshot();
+}
+
 void World::visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor) {
 	Position p = position;
 	visitor->newDirection(p);
@@ -333,6 +338,62 @@ void disposeChunkStripe(ChunkStripe * p) {
 	delete p;
 }
 
+void World::updateVolumeSnapshot() {
+	if (!volumeSnapshotInvalid && volumePos == camPosition.pos)
+		return;
+	volumePos = camPosition.pos;
+	getCellsNear(camPosition.pos, volumeSnapshot);
+	volumeSnapshotInvalid = false;
+}
+
+void Chunk::getCells(Vector3d srcpos, Vector3d dstpos, Vector3d size, VolumeData & buf) {
+	for (int y = 0; y < size.y; y++) {
+		int yy = srcpos.y + y;
+		if (yy >= 0 && yy < CHUNK_DY) {
+			ChunkLayer * layer = layers[yy];
+			if (layer) {
+				Vector3d v = dstpos;
+				v.y += y;
+				buf.putLayer(v, layer->ptr(srcpos.x, srcpos.z), size.x, size.z, CHUNK_DX);
+			}
+		}
+	}
+}
+
+void World::getCellsNear(Vector3d v, VolumeData & buf) {
+	buf.clear();
+	int sz = buf.size();
+	v.x -= sz;
+	v.y -= sz;
+	v.z -= sz;
+	int dy = sz * 2;
+	Vector3d endv = v;
+	endv.x += sz * 2;
+	endv.y += sz * 2;
+	endv.z += sz * 2;
+	for (int z = v.z; z < endv.z;) {
+		int nextz = (z + CHUNK_DX) & (~CHUNK_DX_MASK);
+		int dz = nextz - z;
+		for (int x = v.x; x < endv.x;) {
+			int nextx = (x + CHUNK_DX) & (~CHUNK_DX_MASK);
+			int dx = nextx - x;
+
+			int chunkx = x >> CHUNK_DX_SHIFT;
+			int chunkz = z >> CHUNK_DX_SHIFT;
+			Chunk * p = chunks.get(chunkx, chunkz);
+			if (p) {
+				p->getCells(
+					Vector3d(v.x & CHUNK_DX_MASK, v.y, v.z & CHUNK_DX_MASK),
+					Vector3d(x - v.x, v.y, z - v.z),
+					Vector3d(dx, dy, dz),
+					buf);
+			}
+			x = nextx;
+		}
+		z = nextz;
+	}
+}
+
 #if UNIT_TESTS==1
 void testVectors();
 
@@ -379,3 +440,4 @@ void runWorldUnitTests() {
 	testVectors();
 #endif
 }
+

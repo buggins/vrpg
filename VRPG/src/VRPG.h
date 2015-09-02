@@ -65,6 +65,7 @@ private:
 	Node* _lightNode;
 	Mesh * _cubeMesh;
 	Node* _cameraNode;
+	Mesh* _worldMesh;
 	Node* _worldNode;
 	Model* _worldModel;
 	bool _wireframe;

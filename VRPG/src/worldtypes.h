@@ -2,8 +2,110 @@
 #define WORLDTYPES_H_INCLUDED
 
 #include <stdlib.h>
+#include <string.h>
 
 typedef unsigned char cell_t;
+const cell_t NO_CELL = 0;
+const cell_t END_OF_WORLD = 254;
+const cell_t VISITED_CELL = 255;
+
+enum Dir {
+	NORTH = 0,
+	SOUTH,
+	WEST,
+	EAST,
+	UP,
+	DOWN,
+};
+
+/// Extended Dir - directions can be combined; first 6 items of DirEx match items of Dir
+enum DirEx {
+	DIR_NORTH = 0,
+	DIR_SOUTH,
+	DIR_WEST,
+	DIR_EAST,
+	DIR_UP,
+	DIR_DOWN,
+	DIR_WEST_UP,
+	DIR_EAST_UP,
+	DIR_WEST_DOWN,
+	DIR_EAST_DOWN,
+	DIR_NORTH_WEST,
+	DIR_NORTH_EAST,
+	DIR_NORTH_UP,
+	DIR_NORTH_DOWN,
+	DIR_NORTH_WEST_UP,
+	DIR_NORTH_EAST_UP,
+	DIR_NORTH_WEST_DOWN,
+	DIR_NORTH_EAST_DOWN,
+	DIR_SOUTH_WEST,
+	DIR_SOUTH_EAST,
+	DIR_SOUTH_UP,
+	DIR_SOUTH_DOWN,
+	DIR_SOUTH_WEST_UP,
+	DIR_SOUTH_EAST_UP,
+	DIR_SOUTH_WEST_DOWN,
+	DIR_SOUTH_EAST_DOWN,
+	DIR_MAX,
+};
+
+enum DirMask {
+	MASK_NORTH = (1 << NORTH),
+	MASK_SOUTH = (1 << SOUTH),
+	MASK_WEST = (1 << WEST),
+	MASK_EAST = (1 << EAST),
+	MASK_UP = (1 << UP),
+	MASK_DOWN = (1 << DOWN),
+	MASK_WEST_UP = (1 << WEST) | MASK_UP,
+	MASK_EAST_UP = (1 << EAST) | MASK_UP,
+	MASK_WEST_DOWN = (1 << WEST) | MASK_DOWN,
+	MASK_EAST_DOWN = (1 << EAST) | MASK_DOWN,
+	MASK_NORTH_WEST = MASK_NORTH | MASK_WEST,
+	MASK_NORTH_EAST = MASK_NORTH | MASK_EAST,
+	MASK_NORTH_UP = MASK_NORTH | MASK_UP,
+	MASK_NORTH_DOWN = MASK_NORTH | MASK_DOWN,
+	MASK_NORTH_WEST_UP = MASK_NORTH | MASK_WEST | MASK_UP,
+	MASK_NORTH_EAST_UP = MASK_NORTH | MASK_EAST | MASK_UP,
+	MASK_NORTH_WEST_DOWN = MASK_NORTH | MASK_WEST | MASK_DOWN,
+	MASK_NORTH_EAST_DOWN = MASK_NORTH | MASK_EAST | MASK_DOWN,
+	MASK_SOUTH_WEST = MASK_SOUTH | MASK_WEST,
+	MASK_SOUTH_EAST = MASK_SOUTH | MASK_EAST,
+	MASK_SOUTH_UP = MASK_SOUTH | MASK_UP,
+	MASK_SOUTH_DOWN = MASK_SOUTH | MASK_DOWN,
+	MASK_SOUTH_WEST_UP = MASK_SOUTH | MASK_WEST | MASK_UP,
+	MASK_SOUTH_EAST_UP = MASK_SOUTH | MASK_EAST | MASK_UP,
+	MASK_SOUTH_WEST_DOWN = MASK_SOUTH | MASK_WEST | MASK_DOWN,
+	MASK_SOUTH_EAST_DOWN = MASK_SOUTH | MASK_EAST | MASK_DOWN,
+};
+
+const DirMask DIR_TO_MASK[] = {
+	MASK_NORTH,
+	MASK_SOUTH,
+	MASK_WEST,
+	MASK_EAST,
+	MASK_UP,
+	MASK_DOWN,
+	MASK_WEST_UP,
+	MASK_EAST_UP,
+	MASK_WEST_DOWN,
+	MASK_EAST_DOWN,
+	MASK_NORTH_WEST,
+	MASK_NORTH_EAST,
+	MASK_NORTH_UP,
+	MASK_NORTH_DOWN,
+	MASK_NORTH_WEST_UP,
+	MASK_NORTH_EAST_UP,
+	MASK_NORTH_WEST_DOWN,
+	MASK_NORTH_EAST_DOWN,
+	MASK_SOUTH_WEST,
+	MASK_SOUTH_EAST,
+	MASK_SOUTH_UP,
+	MASK_SOUTH_DOWN,
+	MASK_SOUTH_WEST_UP,
+	MASK_SOUTH_EAST_UP,
+	MASK_SOUTH_WEST_DOWN,
+	MASK_SOUTH_EAST_DOWN
+};
 
 #ifdef _WIN32
 typedef __int64 lUInt64;
@@ -248,15 +350,6 @@ public:
 
 };
 
-enum Dir {
-	WEST,
-	EAST,
-	NORTH,
-	SOUTH,
-	UP,
-	DOWN,
-};
-
 /// returns opposite direction to specified direction
 inline Dir opposite(Dir d) {
 	return (Dir)(d ^ 1);
@@ -434,6 +527,72 @@ struct Position {
 	}
 };
 
+struct VolumeData {
+	int MAX_DIST;
+	int ROW_SIZE;
+	int DATA_SIZE;
+	cell_t * _data;
+	int directionDelta[64];
+	VolumeData(int MAX_DIST_BITS) {
+		MAX_DIST = 1 << MAX_DIST_BITS;
+		ROW_SIZE = 1 << (MAX_DIST_BITS + 1);
+		DATA_SIZE = ROW_SIZE * ROW_SIZE * ROW_SIZE;
+		_data = new cell_t[DATA_SIZE];
+		clear();
+		for (int i = 0; i < 64; i++) {
+			int delta = 0;
+			if (i & MASK_NORTH)
+				delta--;
+			if (i & MASK_SOUTH)
+				delta++;
+			if (i & MASK_WEST)
+				delta -= ROW_SIZE;
+			if (i & MASK_EAST)
+				delta += ROW_SIZE;
+			if (i & MASK_UP)
+				delta += ROW_SIZE * ROW_SIZE;
+			if (i & MASK_DOWN)
+				delta -= ROW_SIZE * ROW_SIZE;
+			directionDelta[i] = delta;
+		}
+	}
+	~VolumeData() {
+		delete[] _data;
+	}
+	int size() { return MAX_DIST; }
+	void clear() {
+		memset(_data, 0, sizeof(cell_t) * DATA_SIZE);
+	}
+
+	/// put cell w/o bounds checking
+	void put(Vector3d v, cell_t cell) {
+		_data[(v.y << (ROW_SIZE * 2)) | (v.z << ROW_SIZE) | v.x] = cell;
+	}
+
+	/// put cell w/o bounds checking
+	void put(int index, cell_t cell) {
+		_data[index] = cell;
+	}
+
+	/// v is zero based destination coordinates
+	void putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe);
+
+	/// read w/o bounds checking
+	cell_t get(Vector3d v) {
+		return _data[(v.y << (ROW_SIZE * 2)) | (v.z << ROW_SIZE) | v.x];
+	}
+
+	cell_t get(int index) {
+		return _data[index];
+	}
+
+	int moveIndex(int oldIndex, DirMask direction) {
+		return oldIndex + directionDelta[direction];
+	}
+	int moveIndex(int oldIndex, DirEx direction) {
+		return oldIndex + directionDelta[DIR_TO_MASK[direction]];
+	}
+};
 
 #endif// WORLDTYPES_H_INCLUDED
 
