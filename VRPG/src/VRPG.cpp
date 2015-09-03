@@ -1,6 +1,7 @@
 #include "VRPG.h"
 #include "world.h"
 #include "blocks.h"
+#include "logger.h"
 
 #define USE_SPOT_LIGHT 1
 
@@ -305,6 +306,12 @@ void VRPG::initWorld() {
 
 void VRPG::initialize()
 {
+	CRLog::setFileLogger("vrpg.log", true);
+	CRLog::setLogLevel(CRLog::LL_TRACE);
+	CRLog::info("VRPG::initialize()");
+
+
+	CRLog::trace("initWorld()");
 	initWorld();
 
 	// Create a new empty scene.

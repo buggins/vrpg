@@ -2,70 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <time.h>
-#ifdef LINUX
-#include <sys/time.h>
-#if !defined(__APPLE__)
-#include <malloc.h>
-#endif
-#endif
-#ifdef __APPLE__
-#include <sys/time.h>
-#endif
-
-#if !defined(__SYMBIAN32__) && defined(_WIN32)
-extern "C" {
-#include <windows.h>
-}
-#endif
-
-#ifdef _WIN32
-static bool __timerInitialized = false;
-static double __timeTicksPerMillis;
-static lUInt64 __timeStart;
-static lUInt64 __timeAbsolute;
-static lUInt64 __startTimeMillis;
-#endif
-
-void CRReinitTimer();
-
-void CRReinitTimer() {
-#ifdef _WIN32
-	LARGE_INTEGER tps;
-	QueryPerformanceFrequency(&tps);
-	__timeTicksPerMillis = (double)(tps.QuadPart / 1000L);
-	LARGE_INTEGER queryTime;
-	QueryPerformanceCounter(&queryTime);
-	__timeStart = (lUInt64)(queryTime.QuadPart / __timeTicksPerMillis);
-	__timerInitialized = true;
-	FILETIME ft;
-	GetSystemTimeAsFileTime(&ft);
-	__startTimeMillis = (ft.dwLowDateTime | (((lUInt64)ft.dwHighDateTime) << 32)) / 10000;
-#else
-	// do nothing. it's for win32 only
-#endif
-}
-
-
-lUInt64 GetCurrentTimeMillis() {
-#ifdef _WIN32
-	if (!__timerInitialized) {
-		CRReinitTimer();
-		return __startTimeMillis;
-	}
-	else {
-		LARGE_INTEGER queryTime;
-		QueryPerformanceCounter(&queryTime);
-		__timeAbsolute = (lUInt64)(queryTime.QuadPart / __timeTicksPerMillis);
-		return __startTimeMillis + (lUInt64)(__timeAbsolute - __timeStart);
-	}
-#else
-    timeval ts;
-    gettimeofday(&ts, NULL);
-    return ts.tv_sec * (lUInt64)1000 + ts.tv_usec / 1000;
-#endif
-}
-
 
 cell_t World::getCell(int x, int y, int z) {
 	y += CHUNK_DY / 2;
@@ -290,7 +226,8 @@ struct VolumeVisitor {
 		fclose(log);
 	}
 	void visitAll() {
-		newcells.append(Vector2d(volume.getIndex(Vector3d()), MASK_EX_ALL));
+		int startIndex = volume.getIndex(Vector3d());
+		newcells.append(Vector2d(startIndex, MASK_EX_ALL));
 		cell_t nearCells[26];
 		DirEx directions[26];
 		for (distance = 1; distance < volume.size(); distance++) {
@@ -341,6 +278,8 @@ struct VolumeVisitor {
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
+	VolumeVisitor visitorHelper(volumeSnapshot, visitor);
+	visitorHelper.visitAll();
 }
 
 void World::visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor) {

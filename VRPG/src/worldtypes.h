@@ -170,14 +170,6 @@ const int NEAR_DIRECTIONS[] = {
 	MASK_EX_SOUTH_EAST_DOWN
 };
 
-#ifdef _WIN32
-typedef __int64 lUInt64;
-#else
-typedef long long lUInt64;
-#endif
-
-lUInt64 GetCurrentTimeMillis();
-
 template<typename T, T initValue> struct SymmetricMatrix {
 private:
 	int _size;
@@ -591,12 +583,13 @@ struct Position {
 };
 
 struct VolumeData {
+	int MAX_DIST_BITS;
 	int MAX_DIST;
 	int ROW_SIZE;
 	int DATA_SIZE;
 	cell_t * _data;
 	int directionDelta[64];
-	VolumeData(int MAX_DIST_BITS) {
+	VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 		MAX_DIST = 1 << MAX_DIST_BITS;
 		ROW_SIZE = 1 << (MAX_DIST_BITS + 1);
 		DATA_SIZE = ROW_SIZE * ROW_SIZE * ROW_SIZE;
@@ -629,7 +622,7 @@ struct VolumeData {
 
 	/// put cell w/o bounds checking, (0,0,0) is center of array
 	inline void put(Vector3d v, cell_t cell) {
-		_data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)] = cell;
+		_data[((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST)] = cell;
 	}
 
 	/// v is zero based destination coordinates
@@ -642,7 +635,7 @@ struct VolumeData {
 
 	/// read w/o bounds checking, (0,0,0) is center of array
 	inline cell_t get(Vector3d v) {
-		return _data[((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST)];
+		return _data[((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST)];
 	}
 
 	inline cell_t get(int index) {
@@ -651,7 +644,7 @@ struct VolumeData {
 
 	/// get array index for point - (0,0,0) is center
 	inline int getIndex(Vector3d v) {
-		return ((v.y + MAX_DIST) << (ROW_SIZE * 2)) | ((v.z + MAX_DIST) << ROW_SIZE) | (v.x + MAX_DIST);
+		return ((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST);
 	}
 
 	inline int moveIndex(int oldIndex, DirMask direction) {
