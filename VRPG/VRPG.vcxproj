@@ -186,12 +186,14 @@ xcopy ..\..\..\GamePlay\gameplay\res\ui res\ui\* /s /y /d</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\blocks.cpp" />
+    <ClCompile Include="src\logger.cpp" />
     <ClCompile Include="src\VRPG.cpp" />
     <ClCompile Include="src\world.cpp" />
     <ClCompile Include="src\worldtypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\blocks.h" />
+    <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\VRPG.h" />
     <ClInclude Include="src\world.h" />
     <ClInclude Include="src\worldtypes.h" />

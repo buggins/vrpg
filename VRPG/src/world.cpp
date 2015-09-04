@@ -1,7 +1,7 @@
 #include "world.h"
 #include <stdio.h>
 #include <assert.h>
-
+#include "logger.h"
 
 cell_t World::getCell(int x, int y, int z) {
 	y += CHUNK_DY / 2;
@@ -128,15 +128,12 @@ struct VisitorHelper {
 	Vector3dArray newcells;
 	BoolSymmetricMatrix visited;
 	CellVisitor * visitor;
-	FILE * log;
 	VisitorHelper(World & w, Position & p, CellVisitor * v) : world(w), position(p), visitor(v) {
-		log = fopen("visitor.log", "at");
 	}
 	~VisitorHelper() {
-		fclose(log);
 	}
 	void newRange(int distance) {
-		fprintf(log, "new range: %d\n", distance);
+		CRLog::trace("new range: %d\n", distance);
 		visited.reset(distance + 1);
 		oldcells.swap(newcells);
 		newcells.clear();
@@ -218,60 +215,79 @@ struct VolumeVisitor {
 	Vector2dArray oldcells;
 	Vector2dArray newcells;
 	CellVisitor * visitor;
-	FILE * log;
 	VolumeVisitor(VolumeData & data, CellVisitor * v) : volume(data), visitor(v) {
-		log = fopen("visitor2.log", "at");
 	}
 	~VolumeVisitor() {
-		fclose(log);
+	}
+	void appendNextCell(int posIndex, int mask) {
+		newcells.append(Vector2d(posIndex, mask));
 	}
 	void visitAll() {
+		CRLog::trace("VolumeVisitor::visitAll() enter");
 		int startIndex = volume.getIndex(Vector3d());
-		newcells.append(Vector2d(startIndex, MASK_EX_ALL));
+		appendNextCell(volume.moveIndex(startIndex, DIR_NORTH), MASK_EX_NORTH | MASK_EX_NORTH_EAST | MASK_EX_NORTH_WEST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_DOWN | MASK_EX_NORTH_WEST_DOWN);
+		appendNextCell(volume.moveIndex(startIndex, DIR_SOUTH), MASK_EX_SOUTH | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_DOWN | MASK_EX_SOUTH_WEST_DOWN);
+		appendNextCell(volume.moveIndex(startIndex, DIR_WEST), MASK_EX_WEST | MASK_EX_NORTH_WEST | MASK_EX_SOUTH_WEST | MASK_EX_WEST_UP | MASK_EX_WEST_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_SOUTH_WEST_DOWN);
+		appendNextCell(volume.moveIndex(startIndex, DIR_EAST), MASK_EX_EAST | MASK_EX_NORTH_EAST | MASK_EX_SOUTH_EAST | MASK_EX_EAST_UP | MASK_EX_EAST_DOWN | MASK_EX_NORTH_EAST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_EAST_DOWN);
+		appendNextCell(volume.moveIndex(startIndex, DIR_UP), MASK_EX_UP | MASK_EX_NORTH_UP | MASK_EX_SOUTH_UP | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_NORTH_WEST_UP | MASK_EX_SOUTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_SOUTH_EAST_UP);
+		appendNextCell(volume.moveIndex(startIndex, DIR_DOWN), MASK_EX_DOWN | MASK_EX_NORTH_DOWN | MASK_EX_SOUTH_DOWN | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST_DOWN | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_EAST_DOWN);
+
 		cell_t nearCells[26];
 		DirEx directions[26];
 		for (distance = 1; distance < volume.size(); distance++) {
 			newcells.swap(oldcells);
 			newcells.clear();
-			for (int i = 0; i < oldcells.length(); i++) {
-				Vector2d pt = oldcells[i];
-				int index = pt.x;
-				int mask = pt.y;
-				cell_t currentCell = volume.get(index);
-				int emptyCellMask;
-				int dirCount = volume.getNear(index, mask, nearCells, directions, emptyCellMask);
-				for (int j = 0; j < dirCount; j++) {
-					DirEx dir = directions[j];
-					int newIndex = volume.moveIndex(index, dir);
-					cell_t newCell = nearCells[dir];
-					if (newCell != VISITED_CELL) {
-						if (newCell) {
-							// occupied cell
-							if (dir < 6) {
-								// main direction - visit visible face
-							}
-						} else {
-							// empty cell
-							bool reachableUsingMainDirectionSteps = (emptyCellMask & DIR_TO_MASK[dir]) != 0;
-							if (reachableUsingMainDirectionSteps) {
-								// new mask
-								int newMask = mask & NEAR_DIRECTIONS[dir]; // exclude opposite dirs
+			for (int stage = 0; stage < 2; stage++) {
+				// stage 0 - only simple directions
+				// stage 1 - allow diagonals
+				for (int i = 0; i < oldcells.length(); i++) {
+					Vector2d pt = oldcells[i];
+					int index = pt.x;
+					int mask = pt.y;
 
-								if ((newMask & ~emptyCellMask) != newMask) {
+					if (stage == 0)
+						mask = mask & 0x3F;
+					if (!mask)
+						continue;
 
+					cell_t currentCell = volume.get(index);
+					int emptyCellMask;
+					int dirCount = volume.getNear(index, mask, nearCells, directions, emptyCellMask);
+					for (int j = 0; j < dirCount; j++) {
+						DirEx dir = directions[j];
+						int newIndex = volume.moveIndex(index, dir);
+						cell_t newCell = nearCells[dir];
+						if (newCell != VISITED_CELL) {
+							if (newCell) {
+								// occupied cell
+								if (dir < 6) {
+									// main direction - visit visible face
 								}
+							}
+							else {
+								// empty cell
+								bool reachableUsingMainDirectionSteps = (emptyCellMask & DIR_TO_MASK[dir]) != 0;
+								if (reachableUsingMainDirectionSteps) {
+									// new mask
+									int newMask = mask & NEAR_DIRECTIONS[dir]; // exclude opposite dirs
 
-								// limit directions in newMask
-								newcells.append(Vector2d(newIndex, newMask));
-								// mark as visited
-								volume.put(newIndex, VISITED_CELL);
+									if ((newMask & ~emptyCellMask) != newMask) {
+
+									}
+
+									// limit directions in newMask
+									newcells.append(Vector2d(newIndex, newMask));
+									// mark as visited
+									volume.put(newIndex, VISITED_CELL);
+								}
 							}
 						}
 					}
+					//MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN;
 				}
-				//MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP | MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST | MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN;
 			}
 		}
+		CRLog::trace("VolumeVisitor::visitAll() exit");
 	}
 };
 
