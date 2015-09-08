@@ -20,6 +20,13 @@ void VolumeData::putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe
 				}
 
 
+/// get all near cells for specified position
+cell_t VolumeData::getNearCells(int index, cell_t cells[]) {
+	for (int d = DIR_MIN; d < DIR_MAX; d++)
+		cells[d] = _data[index + directionExDelta[d]];
+	return _data[index];
+}
+
 /// return number of found directions for passed flags, cells are returned using DirEx index
 int VolumeData::getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask) {
 	emptyCellMask = 0;

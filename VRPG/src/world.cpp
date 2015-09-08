@@ -209,6 +209,7 @@ struct VisitorHelper {
 	}
 };
 
+#if 0
 struct VolumeVisitor {
 	VolumeData & volume;
 	int distance;
@@ -288,6 +289,90 @@ struct VolumeVisitor {
 			}
 		}
 		CRLog::trace("VolumeVisitor::visitAll() exit");
+	}
+};
+
+#endif
+
+//typedef Array<CellToVisit> CellToVisitArray;
+typedef Array<lUInt64> CellToVisitArray;
+
+static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
+	// NORTH
+	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
+	// SOUTH
+	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
+	// WEST
+	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
+	// EAST
+	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
+	// UP
+	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
+	// DOWN
+	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
+};
+
+struct VolumeVisitor {
+	VolumeData & volume;
+	CellToVisitArray oldcells;
+	CellToVisitArray newcells;
+	CellVisitor * visitor;
+	VolumeVisitor(VolumeData & data, CellVisitor * v) : volume(data), visitor(v) {
+	}
+	~VolumeVisitor() {
+	}
+	void visitNear(int index, DirEx baseDir) {
+		int nextIndex = index + volume.directionExDelta[baseDir];
+		cell_t cell = volume._data[nextIndex];
+		if (cell == VISITED_CELL)
+			return;
+		CellToVisit currentCell(nextIndex, cell, baseDir);
+		newcells.reserve(10);
+		newcells.appendNoCheck(currentCell.data);
+		volume.put(currentCell.index, VISITED_CELL);
+		if (!currentCell.cell) {
+			// empty
+			const DirEx * dirs = NEAR_DIRECTIONS_FOR + 8 * baseDir;
+			CellToVisit next;
+			next.dir = baseDir;
+			for (int i = 0; i < 8; i++) {
+				//visit(currentCell.index, dirs[i], baseDir);
+				next.index = currentCell.index + volume.directionExDelta[dirs[i]];
+				next.cell = volume._data[next.index];
+				if (next.cell != VISITED_CELL) {
+					newcells.appendNoCheck(next.data);
+					volume.put(index, VISITED_CELL);
+				}
+			}
+		}
+	}
+	void visitAll() {
+		lUInt64 startTs = GetCurrentTimeMillis();
+		CRLog::trace("VolumeVisitor::visitAll() enter");
+		int startIndex = volume.getIndex(Vector3d());
+		cell_t cell = volume.get(startIndex);
+		volume.put(startIndex, VISITED_CELL);
+		visitNear(startIndex, DIR_NORTH);
+		visitNear(startIndex, DIR_SOUTH);
+		visitNear(startIndex, DIR_WEST);
+		visitNear(startIndex, DIR_EAST);
+		visitNear(startIndex, DIR_UP);
+		visitNear(startIndex, DIR_DOWN);
+		for (int distance = 2; distance < volume.size(); distance++) {
+			newcells.swap(oldcells);
+			newcells.clear();
+			for (int i = 0; i < oldcells.length(); i++) {
+				CellToVisit currentCell = oldcells[i];
+				if (currentCell.cell) {
+					//visitor->visitFace()
+				} else {
+					// empty
+					visitNear(currentCell.index, (DirEx)currentCell.dir);
+				}
+			}
+		}
+		lUInt64 duration = GetCurrentTimeMillis() - startTs;
+		CRLog::trace("VolumeVisitor::visitAll() exit, lookup took %lld millis", duration);
 	}
 };
 

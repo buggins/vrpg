@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "worldtypes.h"
 
-const int MAX_VIEW_DISTANCE_BITS = 7;
+const int MAX_VIEW_DISTANCE_BITS = 6;
 const int MAX_VIEW_DISTANCE = (1 << MAX_VIEW_DISTANCE_BITS);
 
 // Layer is 16x16 (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells

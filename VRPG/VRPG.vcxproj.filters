@@ -87,6 +87,9 @@
     <ClInclude Include="src\blocks.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\logger.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\VRPG.cpp">
@@ -99,6 +102,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\worldtypes.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\logger.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "logger.h"
 
 typedef unsigned char cell_t;
 const cell_t NO_CELL = 0;
@@ -47,6 +48,7 @@ enum DirEx {
 	DIR_SOUTH_WEST_DOWN,
 	DIR_SOUTH_EAST_DOWN,
 	DIR_MAX,
+	DIR_MIN = DIR_NORTH,
 };
 
 // 26 direction masks based on Dir
@@ -301,23 +303,31 @@ public:
 		T * ptmp;
 		ptmp = _data; _data = v._data; v._data = ptmp;
 	}
+	/// ensure capacity is enough to fit sz items
 	void reserve(int sz) {
+		sz += _length;
 		if (_size < sz) {
-			_data = (T*)realloc(_data, sizeof(T)*sz);
-			_size = sz;
+			int newsize = 1024;
+			while (newsize < sz)
+				newsize <<= 1;
+			_data = (T*)realloc(_data, sizeof(T) * newsize);
+			for (int i = _size; i < newsize; i++)
+				_data[i] = initValue;
+			_size = newsize;
 		}
-		for (int i = _size; i < sz; i++)
-			_data[i] = initValue;
 	}
 	int length() {
 		return _length;
 	}
-	void append(T value) {
+	void append(const T & value) {
 		if (_length >= _size)
-			reserve(_size == 0 ? 64 : _size * 2);
+			reserve(_size == 0 ? 64 : _size * 2 - _length);
 		_data[_length++] = value;
 	}
-	T* append(T value, int count) {
+	inline void appendNoCheck(const T & value) {
+		_data[_length++] = value;
+	}
+	T* append(const T & value, int count) {
 		int startLen = _length;
 		for (int i = 0; i < count; i++)
 			append(value);
@@ -582,14 +592,43 @@ struct Position {
 	}
 };
 
+#pragma pack(push)
+#pragma pack(1)
+struct CellToVisit {
+	union {
+		struct {
+			int index;
+			cell_t cell;
+			unsigned char dir;
+		};
+		lUInt64 data;
+	};
+	CellToVisit() : data(0) {}
+	CellToVisit(int idx, cell_t cellValue, DirEx direction) : index(idx), cell(cellValue), dir(direction) {}
+	CellToVisit(const CellToVisit & v) : data(v.data) {}
+	CellToVisit(lUInt64 v) : data(v) {}
+	inline CellToVisit& operator = (CellToVisit v) {
+		data = v.data;
+		return *this;
+	}
+	inline CellToVisit& operator = (lUInt64 v) {
+		data = v;
+		return *this;
+	}
+};
+#pragma pack(pop)
+
 struct VolumeData {
 	int MAX_DIST_BITS;
+	int ROW_BITS;
 	int MAX_DIST;
 	int ROW_SIZE;
 	int DATA_SIZE;
 	cell_t * _data;
 	int directionDelta[64];
+	int directionExDelta[26];
 	VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
+		ROW_BITS = MAX_DIST_BITS + 1;
 		MAX_DIST = 1 << MAX_DIST_BITS;
 		ROW_SIZE = 1 << (MAX_DIST_BITS + 1);
 		DATA_SIZE = ROW_SIZE * ROW_SIZE * ROW_SIZE;
@@ -611,6 +650,8 @@ struct VolumeData {
 				delta -= ROW_SIZE * ROW_SIZE;
 			directionDelta[i] = delta;
 		}
+		for (int d = DIR_MIN; d < DIR_MAX; d++)
+			directionExDelta[d] = directionDelta[DIR_TO_MASK[d]];
 	}
 	~VolumeData() {
 		delete[] _data;
@@ -622,7 +663,7 @@ struct VolumeData {
 
 	/// put cell w/o bounds checking, (0,0,0) is center of array
 	inline void put(Vector3d v, cell_t cell) {
-		_data[((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST)] = cell;
+		_data[((v.y + MAX_DIST) << (ROW_BITS * 2)) | ((v.z + MAX_DIST) << ROW_BITS) | (v.x + MAX_DIST)] = cell;
 	}
 
 	/// v is zero based destination coordinates
@@ -635,7 +676,7 @@ struct VolumeData {
 
 	/// read w/o bounds checking, (0,0,0) is center of array
 	inline cell_t get(Vector3d v) {
-		return _data[((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST)];
+		return _data[((v.y + MAX_DIST) << (ROW_BITS * 2)) | ((v.z + MAX_DIST) << ROW_BITS) | (v.x + MAX_DIST)];
 	}
 
 	inline cell_t get(int index) {
@@ -644,7 +685,7 @@ struct VolumeData {
 
 	/// get array index for point - (0,0,0) is center
 	inline int getIndex(Vector3d v) {
-		return ((v.y + MAX_DIST) << (MAX_DIST_BITS * 2)) | ((v.z + MAX_DIST) << MAX_DIST_BITS) | (v.x + MAX_DIST);
+		return ((v.y + MAX_DIST) << (ROW_BITS * 2)) | ((v.z + MAX_DIST) << ROW_BITS) | (v.x + MAX_DIST);
 	}
 
 	inline int moveIndex(int oldIndex, DirMask direction) {
@@ -652,11 +693,18 @@ struct VolumeData {
 	}
 	
 	inline int moveIndex(int oldIndex, DirEx direction) {
-		return oldIndex + directionDelta[DIR_TO_MASK[direction]];
+		return oldIndex + directionExDelta[direction];
+	}
+
+	inline CellToVisit getNext(int index, DirEx direction, DirEx baseDir) {
+		int nextIndex = index + directionExDelta[direction];
+		return CellToVisit(nextIndex, _data[nextIndex], baseDir);
 	}
 
 	/// return number of found directions for passed flags, cells are returned using DirEx index
 	int getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask);
+	/// get all near cells for specified position
+	cell_t getNearCells(int index, cell_t cells[]);
 };
 
 #endif// WORLDTYPES_H_INCLUDED
