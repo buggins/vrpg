@@ -172,6 +172,12 @@ public:
 //        for (int i = 0; i < 6; i++)
 //            ibuf[i] = v0 + face_indexes[i];
 	}
+	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) {
+		for (int i = 0; i < 6; i++)
+			if (visibleFaces & (1<<i))
+				visitFace(world, camPosition, pos, cell, (Dir)i);
+	}
+
 	Mesh* createMesh() {
 		unsigned int vertexCount = faceCount * 4;
 		unsigned int indexCount = faceCount * 6;
@@ -378,7 +384,7 @@ void VRPG::initialize()
 
 	MeshVisitor * meshVisitor = new MeshVisitor();
 	//world->visitVisibleCells(world->getCamPosition(), meshVisitor);
-	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
+	_world->visitVisibleCellsAllDirectionsFast(_world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
 	_worldMesh = worldMesh;
 	_worldNode = createWorldNode(worldMesh);
@@ -439,11 +445,11 @@ void VRPG::render(float elapsedTime)
 	p.pos -= p.direction.forward;
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 
-#define REVISIT_EACH_RENDER 0
+#define REVISIT_EACH_RENDER 1
 
 	MeshVisitor * meshVisitor = new MeshVisitor();
 #if REVISIT_EACH_RENDER==1
-	_world->visitVisibleCellsAllDirections(_world->getCamPosition(), meshVisitor);
+	_world->visitVisibleCellsAllDirectionsFast(_world->getCamPosition(), meshVisitor);
 	Mesh * worldMesh = meshVisitor->createMesh();
 	_worldMesh = worldMesh;
 #else

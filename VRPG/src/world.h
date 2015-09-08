@@ -146,7 +146,7 @@ public:
 	virtual ~CellVisitor() {}
 	virtual void newDirection(Position & camPosition) { }
 	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) { }
-	virtual void visit(World * world, Position & camPosition, Vector3d pos) { }
+	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) { }
 };
 
 /// Voxel World
@@ -177,6 +177,7 @@ public:
 		return getCell(v.x, v.y, v.z);
 	}
 	cell_t getCell(int x, int y, int z);
+	bool isOpaque(Vector3d v);
 	void setCell(int x, int y, int z, cell_t value);
 };
 

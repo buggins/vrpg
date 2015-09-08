@@ -3,6 +3,11 @@
 #include <assert.h>
 #include "logger.h"
 
+bool World::isOpaque(Vector3d v) {
+	cell_t cell = getCell(v);
+	return cell > 0 && cell != BOUND_SKY;
+}
+
 cell_t World::getCell(int x, int y, int z) {
 	//y += CHUNK_DY / 2;
 	if (y < 0)
@@ -315,16 +320,18 @@ static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
 
 static CellToVisit cells_to_visit[9];
 struct VolumeVisitor {
+	World * world;
 	VolumeData & volume;
 	CellToVisitArray oldcells;
 	CellToVisitArray newcells;
 	CellVisitor * visitor;
-	VolumeVisitor(VolumeData & data, CellVisitor * v) : volume(data), visitor(v) {
+	Position & position;
+	VolumeVisitor(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
 		//for (int y = -4; y < 20; y++) {
-		//	for (int z = -20; z < 20; z++) {
-		//		for (int x = -20; x < 20; x++) {
+		//	for (int z = -60; z < 60; z++) {
+		//		for (int x = -60; x < 60; x++) {
 		//			cell_t cell = data.get(Vector3d(x, y, z));
-		//			if (cell)
+		//			if (cell && cell < BOUND_SKY)
 		//				CRLog::trace("   %d at %d,%d,%d", cell, x, y, z);
 		//		}
 		//	}
@@ -349,11 +356,12 @@ struct VolumeVisitor {
 			//CRLog::trace("   occupied cell %d at %d,%d,%d (%d) is already visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
 		}
 		newcells.reserve(10);
-		if (cell->cell < VISITED_OCCUPIED)
-			newcells.appendNoCheck(cell->data);
 		if (cell->cell < VISITED_OCCUPIED) {
-			//Vector3d pt = volume.indexToPoint(cell->index);
-			//CRLog::trace("    marking cell %d,%d,%d (%d) as visited", pt.x, pt.y, pt.z, cell->index);
+			newcells.appendNoCheck(cell->data);
+			//if (cell->cell && cell->cell < BOUND_SKY) {
+			//	Vector3d pt = volume.indexToPoint(cell->index);
+			//	CRLog::trace("    marking cell %d  %d,%d,%d (%d) as visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
+			//}
 			volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
 		}
 		if (!cell->cell || cell->cell == VISITED_CELL) {
@@ -419,9 +427,29 @@ struct VolumeVisitor {
 				if (currentCell.cell) {
 					if (currentCell.cell == BOUND_BOTTOM || currentCell.cell == BOUND_SKY)
 						continue;
-					//visitor->visitFace()
-					//Vector3d pt = volume.indexToPoint(currentCell.index);
-					//CRLog::trace("Found occupied cell %d at %d,%d,%d  dir=%d  (index=%d)", currentCell.cell, pt.x, pt.y, pt.z, currentCell.dir, currentCell.index);
+
+					Vector3d pt = volume.indexToPoint(currentCell.index);
+					Vector3d pos = pt + position.pos;
+
+					//cell_t cellFromWorld = world->getCell(pos);
+					//assert(cellFromWorld == currentCell.cell);
+
+					int visibleFaces = 0;
+					if (pt.y <= 0 && !world->isOpaque(pos.move(DIR_UP)))
+						visibleFaces |= MASK_UP;
+					if (pt.y >= 0 && !world->isOpaque(pos.move(DIR_DOWN)))
+						visibleFaces |= MASK_DOWN;
+					if (pt.x <= 0 && !world->isOpaque(pos.move(DIR_EAST)))
+						visibleFaces |= MASK_EAST;
+					if (pt.x >= 0 && !world->isOpaque(pos.move(DIR_WEST)))
+						visibleFaces |= MASK_WEST;
+					if (pt.z <= 0 && !world->isOpaque(pos.move(DIR_SOUTH)))
+						visibleFaces |= MASK_SOUTH;
+					if (pt.z >= 0 && !world->isOpaque(pos.move(DIR_NORTH)))
+						visibleFaces |= MASK_NORTH;
+					//CRLog::trace("Visiting cell %d at %d,%d,%d  faces=%02x", currentCell.cell, pos.x, pos.y, pos.z, visibleFaces);
+					visitor->visit(world, position, pos, currentCell.cell, visibleFaces);
+
 				} else {
 					// empty
 					visitNear(currentCell.index, (DirEx)currentCell.dir);
@@ -436,7 +464,7 @@ struct VolumeVisitor {
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
-	VolumeVisitor visitorHelper(volumeSnapshot, visitor);
+	VolumeVisitor visitorHelper(this, position, volumeSnapshot, visitor);
 	visitorHelper.visitAll();
 }
 
@@ -517,6 +545,7 @@ void Chunk::getCells(Vector3d srcpos, Vector3d dstpos, Vector3d size, VolumeData
 			if (layer) {
 				Vector3d v = dstpos;
 				v.y += y;
+				//CRLog::trace("putLayer %d  %d,%d %dx%d  to   %d,%d,%d", yy, srcpos.x, srcpos.z, size.x, size.z, v.x, v.y, v.z);
 				buf.putLayer(v, layer->ptr(srcpos.x, srcpos.z), size.x, size.z, CHUNK_DX);
 			}
 		}
@@ -530,6 +559,7 @@ void World::getCellsNear(Vector3d v, VolumeData & buf) {
 	v.x -= sz;
 	v.y -= sz;
 	v.z -= sz;
+	int dsty = 0;
 	int dy = sz * 2;
 	Vector3d endv = v;
 	endv.x += sz * 2;
@@ -537,6 +567,7 @@ void World::getCellsNear(Vector3d v, VolumeData & buf) {
 	endv.z += sz * 2;
 	if (v.y < 0) {
 		dy -= -v.y;
+		dsty += -v.y;
 		v.y = 0;
 	}
 	int minLayer = -1;
@@ -561,7 +592,7 @@ void World::getCellsNear(Vector3d v, VolumeData & buf) {
 				//CRLog::trace("chunk %d,%d  pos %d,%d next %d,%d", chunkx, chunkz, x, z, nextx, nextz);
 				p->getCells(
 					Vector3d(xx, v.y, zz),
-					Vector3d(x - v.x, v.y, z - v.z),
+					Vector3d(x - v.x, dsty, z - v.z),
 					Vector3d(dx, dy, dz),
 					buf);
 			}
@@ -570,8 +601,8 @@ void World::getCellsNear(Vector3d v, VolumeData & buf) {
 		z = nextz;
 	}
 	if (minLayer != -1) {
-		buf.fillLayer(minLayer - y0, BOUND_BOTTOM);
-		buf.fillLayer(maxLayer - y0, BOUND_SKY);
+		buf.fillLayer(minLayer - y0 - 1, BOUND_BOTTOM);
+		buf.fillLayer(maxLayer - y0 + 1, BOUND_SKY);
 	}
 }
 

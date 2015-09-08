@@ -3,11 +3,17 @@
 /// v is zero based destination coordinates
 void VolumeData::putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe) {
 	cell_t * dst = _data + ((v.y << (ROW_BITS * 2)) | (v.z << ROW_BITS) | v.x);
+	//int nzcount = 0;
 	for (int z = 0; z < dz; z++) {
 		memcpy(dst, layer, sizeof(cell_t) * dx);
+		//for (int x = 0; x < dx; x++)
+		//	if (dst[x])
+		//		nzcount++;
 		layer += stripe;
 		dst += ROW_SIZE;
+
 	}
+	//CRLog::trace("  non-zero cells copied: %d", nzcount);
 }
 
 #define UPDATE_CELL(dir) \
@@ -73,12 +79,12 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 		mainDirectionDeltas[d][0] = directionExDelta[d];
 		for (int i = 0; i < 8; i++)
 			mainDirectionDeltas[d][1 + i] = mainDirectionDeltas[d][0] + directionExDelta[dirs[i]];
-		CRLog::trace("Direction : %d", d);
-		for (int i = 0; i < 9; i++) {
-			int delta = mainDirectionDeltas[d][i];
-			Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
-			CRLog::trace("Delta : %d,%d,%d", pt.x, pt.y, pt.z);
-		}
+		//CRLog::trace("Direction : %d", d);
+		//for (int i = 0; i < 9; i++) {
+		//	int delta = mainDirectionDeltas[d][i];
+		//	Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
+		//	CRLog::trace("Delta : %d,%d,%d", pt.x, pt.y, pt.z);
+		//}
 	}
 }
 

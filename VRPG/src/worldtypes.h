@@ -283,6 +283,32 @@ struct Vector3d {
 	Vector3d turnDown() {
 		return Vector3d(x, z, -y);
 	}
+	Vector3d move(DirEx dir) {
+		Vector3d res = *this;
+		switch (dir) {
+		case DIR_NORTH:
+			res.z--;
+			break;
+		case DIR_SOUTH:
+			res.z++;
+			break;
+		case DIR_WEST:
+			res.x--;
+			break;
+		case DIR_EAST:
+			res.x++;
+			break;
+		case DIR_UP:
+			res.y++;
+			break;
+		case DIR_DOWN:
+			res.y--;
+			break;
+		default:
+			break;
+		}
+		return res;
+	}
 };
 const Vector3d ZERO3 = Vector3d(0, 0, 0);
 
