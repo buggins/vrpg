@@ -44,8 +44,10 @@ public:
 struct Chunk {
 private:
 	ChunkLayer * layers[CHUNK_DY];
+	int bottomLayer;
+	int topLayer;
 public:
-	Chunk() {
+	Chunk() : bottomLayer(-1), topLayer(-1) {
 		for (int i = 0; i < CHUNK_DY; i++)
 			layers[i] = NULL;
 	}
@@ -53,6 +55,14 @@ public:
 		for (int i = 0; i < CHUNK_DY; i++)
 			if (layers[i])
 				delete layers[i];
+	}
+	int getMinLayer() { return bottomLayer; }
+	int getMaxLayer() { return topLayer; }
+	void updateMinMaxLayer(int & minLayer, int & maxLayer) {
+		if (minLayer == -1 || minLayer > bottomLayer)
+			minLayer = bottomLayer;
+		if (maxLayer == -1 || maxLayer < topLayer)
+			maxLayer = topLayer;
 	}
 	inline cell_t get(int x, int y, int z) {
 		//if (!this)
@@ -63,10 +73,15 @@ public:
 		return layer->get(x & CHUNK_DX_MASK, z & CHUNK_DY_MASK);
 	}
 	inline void set(int x, int y, int z, cell_t cell) {
-		ChunkLayer * layer = layers[y & CHUNK_DY_MASK];
+		int layerIndex = y & CHUNK_DY_MASK;
+		ChunkLayer * layer = layers[layerIndex];
 		if (!layer) {
 			layer = new ChunkLayer();
-			layers[y & CHUNK_DY_MASK] = layer;
+			layers[layerIndex] = layer;
+			if (topLayer == -1 || topLayer < layerIndex)
+				topLayer = layerIndex;
+			if (bottomLayer == -1 || bottomLayer > layerIndex)
+				bottomLayer = layerIndex;
 		}
 		layer->set(x & CHUNK_DX_MASK, z & CHUNK_DY_MASK, cell);
 	}

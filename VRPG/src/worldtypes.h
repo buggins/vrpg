@@ -7,8 +7,11 @@
 
 typedef unsigned char cell_t;
 const cell_t NO_CELL = 0;
-const cell_t END_OF_WORLD = 254;
+const cell_t END_OF_WORLD = 253;
 const cell_t VISITED_CELL = 255;
+const cell_t VISITED_OCCUPIED = 254;
+const cell_t BOUND_BOTTOM = 253;
+const cell_t BOUND_SKY = 252;
 
 enum Dir {
 	NORTH = 0,
@@ -624,35 +627,12 @@ struct VolumeData {
 	int MAX_DIST;
 	int ROW_SIZE;
 	int DATA_SIZE;
+	int ROW_MASK;
 	cell_t * _data;
 	int directionDelta[64];
 	int directionExDelta[26];
-	VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
-		ROW_BITS = MAX_DIST_BITS + 1;
-		MAX_DIST = 1 << MAX_DIST_BITS;
-		ROW_SIZE = 1 << (MAX_DIST_BITS + 1);
-		DATA_SIZE = ROW_SIZE * ROW_SIZE * ROW_SIZE;
-		_data = new cell_t[DATA_SIZE];
-		clear();
-		for (int i = 0; i < 64; i++) {
-			int delta = 0;
-			if (i & MASK_NORTH)
-				delta--;
-			if (i & MASK_SOUTH)
-				delta++;
-			if (i & MASK_WEST)
-				delta -= ROW_SIZE;
-			if (i & MASK_EAST)
-				delta += ROW_SIZE;
-			if (i & MASK_UP)
-				delta += ROW_SIZE * ROW_SIZE;
-			if (i & MASK_DOWN)
-				delta -= ROW_SIZE * ROW_SIZE;
-			directionDelta[i] = delta;
-		}
-		for (int d = DIR_MIN; d < DIR_MAX; d++)
-			directionExDelta[d] = directionDelta[DIR_TO_MASK[d]];
-	}
+	int mainDirectionDeltas[6][9];
+	VolumeData(int distBits);
 	~VolumeData() {
 		delete[] _data;
 	}
@@ -688,6 +668,12 @@ struct VolumeData {
 		return ((v.y + MAX_DIST) << (ROW_BITS * 2)) | ((v.z + MAX_DIST) << ROW_BITS) | (v.x + MAX_DIST);
 	}
 
+	inline Vector3d indexToPoint(int index) {
+		return Vector3d((index & ROW_MASK) - MAX_DIST,
+			((index >> (ROW_BITS * 2)) & ROW_MASK) - MAX_DIST,
+			((index >> (ROW_BITS)) & ROW_MASK) - MAX_DIST);
+	}
+
 	inline int moveIndex(int oldIndex, DirMask direction) {
 		return oldIndex + directionDelta[direction];
 	}
@@ -705,6 +691,10 @@ struct VolumeData {
 	int getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask);
 	/// get all near cells for specified position
 	cell_t getNearCells(int index, cell_t cells[]);
+
+	void getNearCellsForDirection(int index, DirEx direction, CellToVisit cells[9]);
+
+	void fillLayer(int y, cell_t cell);
 };
 
 #endif// WORLDTYPES_H_INCLUDED
