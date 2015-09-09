@@ -299,15 +299,15 @@ struct VolumeVisitor {
 					continue;
 				bool hasPath = (cell2->cell == VISITED_CELL || !cell2->cell);
 				if (!hasPath && i >= 4) {
-					CellToVisit * c1 = cells_to_visit + ((i + 1) & 3) + 5;
-					CellToVisit * c2 = cells_to_visit + ((i - 1) & 3) + 5;
+					CellToVisit * c1 = cells_to_visit + ((i + 1) & 3) + 1;
+					CellToVisit * c2 = cells_to_visit + ((i) & 3) + 1;
 					if (!c1->cell || c1->cell == VISITED_CELL)
 						hasPath = true;
 					else if(!c2->cell || c2->cell == VISITED_CELL)
 						hasPath = true;
 					else {
-						c1 = cells_to_visit_no_forward + ((i + 1) & 3) + 5;
-						c2 = cells_to_visit_no_forward + ((i - 1) & 3) + 5;
+						c1 = cells_to_visit_no_forward + ((i + 1) & 3) + 1;
+						c2 = cells_to_visit_no_forward + ((i) & 3) + 1;
 						if (!c1->cell || c1->cell == VISITED_CELL)
 							hasPath = true;
 						else if (!c2->cell || c2->cell == VISITED_CELL)

@@ -84,6 +84,10 @@ varying vec2 v_texCoord;
 varying vec2 v_texCoord1;
 #endif
 
+#if defined(VERTEX_COLOR)
+varying vec3 v_color;
+#endif
+
 #if defined(LIGHTING)
 
 #if !defined(BUMPED)
@@ -152,4 +156,9 @@ void main()
     #if defined(MODULATE_ALPHA)
     gl_FragColor.a *= u_modulateAlpha;
     #endif
+
+    #if defined(VERTEX_COLOR)
+    gl_FragColor.rgb *= v_color;
+    #endif
+
 }

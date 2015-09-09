@@ -36,6 +36,10 @@ attribute vec3 a_binormal;
 
 #endif
 
+#if defined(VERTEX_COLOR)
+attribute vec3 a_color;
+#endif
+
 ///////////////////////////////////////////////////////////
 // Uniforms
 uniform mat4 u_worldViewProjectionMatrix;
@@ -90,6 +94,10 @@ varying vec2 v_texCoord;
 
 #if defined(LIGHTMAP)
 varying vec2 v_texCoord1;
+#endif
+
+#if defined(VERTEX_COLOR)
+varying vec3 v_color;
 #endif
 
 #if defined(LIGHTING)
@@ -176,5 +184,10 @@ void main()
     
     #if defined(CLIP_PLANE)
     v_clipDistance = dot(u_worldMatrix * position, u_clipPlane);
+    #endif
+
+    // Pass the vertex color
+    #if defined(VERTEX_COLOR)
+	v_color = a_color;
     #endif
 }

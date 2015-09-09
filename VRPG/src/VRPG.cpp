@@ -20,10 +20,10 @@ Material * createMaterialBlocks();
 
 static float face_vertices_north[VERTEX_COMPONENTS * 4] =
 {
-	-0.5, 0.5, -0.5,	0.0, 0.0, -1.0,		2.0, 2.0, 2.0,		0.0, 0.0,
-	0.5, 0.5, -0.5,		0.0, 0.0, -1.0,		2.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		2.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		2.0, 1.0, 1.0,		1.0, 1.0,
+	-0.5, 0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, 0.5, -0.5,		0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 1.0,
 };
 
 static float face_vertices_south[VERTEX_COMPONENTS * 4] =
@@ -204,7 +204,8 @@ Material * createMaterialBlocks() {
 #if USE_SPOT_LIGHT_LIGHT==1
 	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "SPOT_LIGHT_COUNT 1");
 #else
-	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "POINT_LIGHT_COUNT 1");
+	//SPECULAR;
+	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "VERTEX_COLOR;POINT_LIGHT_COUNT 1");
 #endif
 	if (material == NULL)
 	{
@@ -217,8 +218,11 @@ Material * createMaterialBlocks() {
 	material->setParameterAutoBinding("u_inverseTransposeWorldViewMatrix", "INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX");
 	material->setParameterAutoBinding("u_cameraPosition", "CAMERA_VIEW_POSITION");
 	material->setParameterAutoBinding("u_worldViewMatrix", "WORLD_VIEW_MATRIX");
+	//u_specularExponent = 50
+	material->getParameter("u_specularExponent")->setValue(50.0f);
 	// Set the ambient color of the material.
 	material->getParameter("u_ambientColor")->setValue(Vector3(0.1f, 0.1f, 0.1f));
+	//u_ambientColor = SCENE_AMBIENT_COLOR
 
 	// Bind the light's color and direction to the material.
 
