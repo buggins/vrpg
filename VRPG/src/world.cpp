@@ -275,7 +275,7 @@ struct VolumeVisitor {
 			//}
 			volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
 		}
-		if (!cell->cell || cell->cell == VISITED_CELL) {
+		if (true || !cell->cell || cell->cell == VISITED_CELL) {
 			for (int i = 0; i < 8; i++) {
 				cell++;
 				if (cell->cell < VISITED_OCCUPIED) {
@@ -324,19 +324,21 @@ struct VolumeVisitor {
 	}
 	void visitAll() {
 		lUInt64 startTs = GetCurrentTimeMillis();
-		CRLog::trace("VolumeVisitor::visitAll() enter");
+		//CRLog::trace("VolumeVisitor::visitAll() enter");
 		int startIndex = volume.getIndex(Vector3d());
 		cell_t cell = volume.get(startIndex);
 		volume.put(startIndex, VISITED_CELL);
-		visitNear(startIndex, DIR_UP);
-		//visitNear(volume.moveIndex(startIndex, DIR_DOWN), DIR_UP);
+		//visitNear(startIndex, DIR_NORTH);
+		visitNear(volume.moveIndex(startIndex, DIR_SOUTH), DIR_NORTH);
+		//visitNear(volume.moveIndex(volume.moveIndex(startIndex, DIR_SOUTH), DIR_SOUTH), DIR_NORTH);
+		//visitNear(startIndex, DIR_EAST);
+		//visitNear(startIndex, DIR_UP);
+		//visitNear(startIndex, DIR_SOUTH);
+		//visitNear(startIndex, DIR_WEST);
 		visitNear(startIndex, DIR_DOWN);
-		//visitNear(volume.moveIndex(startIndex, DIR_UP), DIR_DOWN);
-		visitNear(startIndex, DIR_NORTH);
-		//visitNear(volume.moveIndex(startIndex, DIR_SOUTH), DIR_NORTH);
-		visitNear(startIndex, DIR_SOUTH);
-		visitNear(startIndex, DIR_WEST);
-		visitNear(startIndex, DIR_EAST);
+		//visitNear(volume.moveIndex(startIndex, DIR_NORTH), DIR_NORTH);
+		//visitNear(volume.moveIndex(startIndex, DIR_WEST), DIR_WEST);
+		//visitNear(volume.moveIndex(startIndex, DIR_UP), DIR_UP);
 		for (int distance = 2; distance < volume.size(); distance++) {
 			//CRLog::trace("Range: %d  cells: %d", distance - 1, newcells.length());
 
@@ -385,7 +387,7 @@ struct VolumeVisitor {
 			}
 		}
 		lUInt64 duration = GetCurrentTimeMillis() - startTs;
-		CRLog::trace("VolumeVisitor::visitAll() exit, lookup took %lld millis", duration);
+		//CRLog::trace("VolumeVisitor::visitAll() exit, lookup took %lld millis", duration);
 	}
 };
 

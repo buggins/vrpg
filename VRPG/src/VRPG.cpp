@@ -347,7 +347,7 @@ void VRPG::initialize()
 	_scene = Scene::create();
 
 	// Create the camera.
-	Camera* camera = Camera::createPerspective(90.0f, getAspectRatio(), 0.4f, MAX_VIEW_DISTANCE + 1);
+	Camera* camera = Camera::createPerspective(90.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
@@ -532,6 +532,15 @@ bool VRPG::drawScene(Node* node)
     return true;
 }
 
+static const char * dir_names[] = {
+	"NORTH",
+	"SOUTH",
+	"WEST",
+	"EAST",
+	"UP",
+	"DOWN",
+};
+
 void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 {
     if (evt == Keyboard::KEY_PRESS)
@@ -567,7 +576,7 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 			pos->pos += pos->direction.up;
 			break;
 		}
-		CRLog::trace("Position: %d,%d,%d direction: %d", pos->pos.x, pos->pos.y, pos->pos.z, pos->direction.dir);
+		CRLog::trace("Position: %d,%d,%d direction: %s", pos->pos.x, pos->pos.y, pos->pos.z, dir_names[pos->direction.dir]);
     }
 }
 
