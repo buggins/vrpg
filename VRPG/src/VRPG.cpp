@@ -221,7 +221,7 @@ Material * createMaterialBlocks() {
 	//u_specularExponent = 50
 	material->getParameter("u_specularExponent")->setValue(50.0f);
 	// Set the ambient color of the material.
-	material->getParameter("u_ambientColor")->setValue(Vector3(0.1f, 0.1f, 0.1f));
+	material->getParameter("u_ambientColor")->setValue(Vector3(0.2f, 0.2f, 0.2f));
 	//u_ambientColor = SCENE_AMBIENT_COLOR
 
 	// Bind the light's color and direction to the material.

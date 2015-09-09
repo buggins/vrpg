@@ -256,34 +256,44 @@ struct VolumeVisitor {
 	~VolumeVisitor() {
 	}
 	void visitNear(int index, DirEx baseDir) {
-		{
-			Vector3d pt = volume.indexToPoint(index);
+		//{
+			//Vector3d pt = volume.indexToPoint(index);
 			//CRLog::trace("visitNear %d,%d,%d (%d) dir=%d", pt.x, pt.y, pt.z, index, baseDir);
-		}
+		//}
+        
+        cell_t thisDirectionVisitedEmpty = VISITED_EMPTY_START + baseDir;
+        
 		volume.getNearCellsForDirection(index, baseDir, cells_to_visit);
 		CellToVisit * cell = cells_to_visit;
-		if (cell->cell && cell->cell < VISITED_OCCUPIED) {
-			Vector3d pt = volume.indexToPoint(cell->index);
+		//if (cell->cell && cell->cell < VISITED_OCCUPIED) {
+			//Vector3d pt = volume.indexToPoint(cell->index);
 			//CRLog::trace("   occupied cell %d at %d,%d,%d (%d) is already visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
-		}
+		//}
 		newcells.reserve(10);
+        
 		if (cell->cell < VISITED_OCCUPIED) {
 			newcells.appendNoCheck(cell->data);
 			//if (cell->cell && cell->cell < BOUND_SKY) {
 			//	Vector3d pt = volume.indexToPoint(cell->index);
 			//	CRLog::trace("    marking cell %d  %d,%d,%d (%d) as visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
 			//}
-			volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
+			volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
 		}
-		if (true || !cell->cell || cell->cell == VISITED_CELL) {
+		if (!cell->cell || cell->cell >= VISITED_EMPTY_START) {
 			for (int i = 0; i < 8; i++) {
 				cell++;
+                if (cell->cell >= VISITED_EMPTY_START && cell->cell != thisDirectionVisitedEmpty) {
+                    // restore cell value
+                    Vector3d pos = volume.indexToPoint(cell->index) + position.pos;
+                    cell->cell = world->getCell(pos);
+                    
+                }
 				if (cell->cell < VISITED_OCCUPIED) {
 					newcells.appendNoCheck(cell->data);
 					//if (cell->cell != VISITED_CELL) {
 						//Vector3d pt = volume.indexToPoint(cell->index);
 						//CRLog::trace("    marking cell %d,%d,%d (%d) as visited *** %d", pt.x, pt.y, pt.z, cell->index, i + 1);
-						volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
+						volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
 					//}
 				}
 			}
@@ -295,28 +305,33 @@ struct VolumeVisitor {
 			for (int i = 0; i < 8; i++) {
 				cell++;
 				cell2++;
-				if (cell->cell >= VISITED_OCCUPIED)
+				if (cell->cell == VISITED_OCCUPIED || cell->cell == thisDirectionVisitedEmpty)
 					continue;
-				bool hasPath = (cell2->cell == VISITED_CELL || !cell2->cell);
+				bool hasPath = (cell2->cell >= VISITED_EMPTY_START || !cell2->cell);
 				if (!hasPath && i >= 4) {
 					CellToVisit * c1 = cells_to_visit + ((i + 1) & 3) + 1;
 					CellToVisit * c2 = cells_to_visit + ((i) & 3) + 1;
 					if (!c1->cell || c1->cell == VISITED_CELL)
 						hasPath = true;
-					else if(!c2->cell || c2->cell == VISITED_CELL)
+					else if(!c2->cell || c2->cell >= VISITED_EMPTY_START)
 						hasPath = true;
 					else {
 						c1 = cells_to_visit_no_forward + ((i + 1) & 3) + 1;
 						c2 = cells_to_visit_no_forward + ((i) & 3) + 1;
-						if (!c1->cell || c1->cell == VISITED_CELL)
+						if (!c1->cell || c1->cell >= VISITED_EMPTY_START)
 							hasPath = true;
-						else if (!c2->cell || c2->cell == VISITED_CELL)
+						else if (!c2->cell || c2->cell >= VISITED_EMPTY_START)
 							hasPath = true;
 					}
 				}
 				if (hasPath) {
+                    if (cell->data >= VISITED_EMPTY_START) {
+                        // restore value from world
+                        Vector3d pos = volume.indexToPoint(cell->index) + position.pos;
+                        cell->cell = world->getCell(pos);
+                    }
 					newcells.appendNoCheck(cell->data);
-					volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
+					volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
 				}
 			}
 			return;
@@ -328,13 +343,13 @@ struct VolumeVisitor {
 		int startIndex = volume.getIndex(Vector3d());
 		cell_t cell = volume.get(startIndex);
 		volume.put(startIndex, VISITED_CELL);
-		//visitNear(startIndex, DIR_NORTH);
-		visitNear(volume.moveIndex(startIndex, DIR_SOUTH), DIR_NORTH);
+		visitNear(startIndex, DIR_NORTH);
+		//visitNear(volume.moveIndex(startIndex, DIR_SOUTH), DIR_NORTH);
 		//visitNear(volume.moveIndex(volume.moveIndex(startIndex, DIR_SOUTH), DIR_SOUTH), DIR_NORTH);
-		//visitNear(startIndex, DIR_EAST);
-		//visitNear(startIndex, DIR_UP);
-		//visitNear(startIndex, DIR_SOUTH);
-		//visitNear(startIndex, DIR_WEST);
+		visitNear(startIndex, DIR_EAST);
+		visitNear(startIndex, DIR_UP);
+		visitNear(startIndex, DIR_SOUTH);
+		visitNear(startIndex, DIR_WEST);
 		visitNear(startIndex, DIR_DOWN);
 		//visitNear(volume.moveIndex(startIndex, DIR_NORTH), DIR_NORTH);
 		//visitNear(volume.moveIndex(startIndex, DIR_WEST), DIR_WEST);

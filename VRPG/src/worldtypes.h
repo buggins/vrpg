@@ -7,11 +7,19 @@
 
 typedef unsigned char cell_t;
 const cell_t NO_CELL = 0;
-const cell_t END_OF_WORLD = 253;
-const cell_t VISITED_CELL = 255;
-const cell_t VISITED_OCCUPIED = 254;
-const cell_t BOUND_BOTTOM = 253;
-const cell_t BOUND_SKY = 252;
+const cell_t END_OF_WORLD =  253;
+const cell_t VISITED_CELL =  255;
+const cell_t VISITED_DOWN =  255;
+const cell_t VISITED_UP =    254;
+const cell_t VISITED_EAST =  253;
+const cell_t VISITED_WEST =  252;
+const cell_t VISITED_SOUTH = 251;
+const cell_t VISITED_NORTH = 250;
+const cell_t VISITED_EMPTY_START = 250;
+const cell_t VISITED_OCCUPIED = 249;
+
+const cell_t BOUND_BOTTOM = 248;
+const cell_t BOUND_SKY =    247;
 
 enum Dir {
 	NORTH = 0,
