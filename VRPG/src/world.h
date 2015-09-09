@@ -169,8 +169,6 @@ public:
 	}
 	void updateVolumeSnapshot();
 	void getCellsNear(Vector3d v, VolumeData & buf);
-	void visitVisibleCells(Position & position, CellVisitor * visitor, bool visitThisPosition = true);
-	void visitVisibleCellsAllDirections(Position & position, CellVisitor * visitor);
 	void visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor);
 	Position & getCamPosition() { return camPosition; }
 	cell_t getCell(Vector3d v) {

@@ -658,6 +658,7 @@ struct VolumeData {
 	int directionDelta[64];
 	int directionExDelta[26];
 	int mainDirectionDeltas[6][9];
+	int mainDirectionDeltasNoForward[6][9];
 	VolumeData(int distBits);
 	~VolumeData() {
 		delete[] _data;
@@ -713,12 +714,8 @@ struct VolumeData {
 		return CellToVisit(nextIndex, _data[nextIndex], baseDir);
 	}
 
-	/// return number of found directions for passed flags, cells are returned using DirEx index
-	int getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask);
-	/// get all near cells for specified position
-	cell_t getNearCells(int index, cell_t cells[]);
-
 	void getNearCellsForDirection(int index, DirEx direction, CellToVisit cells[9]);
+	void getNearCellsForDirectionNoForward(int index, DirEx direction, CellToVisit cells[9]);
 
 	void fillLayer(int y, cell_t cell);
 };

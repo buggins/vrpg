@@ -26,26 +26,19 @@ void VolumeData::putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe
 				}
 
 
-/// get all near cells for specified position
-cell_t VolumeData::getNearCells(int index, cell_t cells[]) {
-	for (int d = DIR_MIN; d < DIR_MAX; d++)
-		cells[d] = _data[index + directionExDelta[d]];
-	return _data[index];
-}
-
 static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
 	// NORTH
-	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
+	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN,		DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
 	// SOUTH
-	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
+	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN,		DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
 	// WEST
-	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
+	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN,		DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
 	// EAST
-	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
+	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN,		DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
 	// UP
-	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
+	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST,	DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
 	// DOWN
-	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
+	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST,	DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
 };
 
 VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
@@ -77,8 +70,11 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 	for (int d = 0; d < 6; d++) {
 		DirEx * dirs = NEAR_DIRECTIONS_FOR + 8 * d;
 		mainDirectionDeltas[d][0] = directionExDelta[d];
-		for (int i = 0; i < 8; i++)
+		mainDirectionDeltasNoForward[d][0] = 0;
+		for (int i = 0; i < 8; i++) {
 			mainDirectionDeltas[d][1 + i] = mainDirectionDeltas[d][0] + directionExDelta[dirs[i]];
+			mainDirectionDeltasNoForward[d][1 + i] = directionExDelta[dirs[i]];
+		}
 		//CRLog::trace("Direction : %d", d);
 		//for (int i = 0; i < 9; i++) {
 		//	int delta = mainDirectionDeltas[d][i];
@@ -102,84 +98,31 @@ void VolumeData::getNearCellsForDirection(int index, DirEx direction, CellToVisi
 	cell->index = index + *deltas;
 	cell->cell = _data[cell->index];
 	cell->dir = direction;
-	if (!cell->cell || cell->cell == VISITED_CELL) {
-		for (int i = 0; i < 8; i++) {
-			cell++;
-			deltas++;
-			cell->index = index + *deltas;
-			cell->cell = _data[cell->index];
-			cell->dir = direction;
-		}
+	//if (!cell->cell || cell->cell == VISITED_CELL) {
+	for (int i = 0; i < 8; i++) {
+		cell++;
+		deltas++;
+		cell->index = index + *deltas;
+		cell->cell = _data[cell->index];
+		cell->dir = direction;
 	}
+	//}
 }
 
-/// return number of found directions for passed flags, cells are returned using DirEx index
-int VolumeData::getNear(int index, int mask, cell_t cells[], DirEx dirs[], int & emptyCellMask) {
-	emptyCellMask = 0;
-	int flagCount = 0;
-	if (mask & (MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP 
-			| MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP)) {
-		if (mask & (MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST | MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP)) {
-			if (mask & (MASK_EX_NORTH | MASK_EX_SOUTH | MASK_EX_WEST | MASK_EX_EAST)) {
-				if (mask & (MASK_EX_NORTH | MASK_EX_SOUTH)) {
-					UPDATE_CELL(DIR_NORTH);
-					UPDATE_CELL(DIR_SOUTH);
-				}
-				if (mask & (MASK_EX_WEST | MASK_EX_EAST)) {
-					UPDATE_CELL(DIR_WEST);
-					UPDATE_CELL(DIR_EAST);
-				}
-			}
-			if (mask & (MASK_EX_UP | MASK_EX_DOWN | MASK_EX_WEST_UP)) {
-				UPDATE_CELL(DIR_UP);
-				UPDATE_CELL(DIR_DOWN);
-				UPDATE_CELL(DIR_WEST_UP);
-			}
-		}
-		if (mask & (MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN | MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP)) {
-			if (mask & (MASK_EX_EAST_UP | MASK_EX_WEST_DOWN | MASK_EX_EAST_DOWN)) {
-				UPDATE_CELL(DIR_EAST_UP);
-				UPDATE_CELL(DIR_WEST_DOWN);
-				UPDATE_CELL(DIR_EAST_DOWN);
-			}
-			if (mask & (MASK_EX_NORTH_WEST | MASK_EX_NORTH_EAST | MASK_EX_NORTH_UP)) {
-				UPDATE_CELL(DIR_NORTH_WEST);
-				UPDATE_CELL(DIR_NORTH_EAST);
-				UPDATE_CELL(DIR_NORTH_UP);
-			}
-		}
+void VolumeData::getNearCellsForDirectionNoForward(int index, DirEx direction, CellToVisit cells[9]) {
+	int * deltas = mainDirectionDeltasNoForward[direction];
+	CellToVisit * cell = cells + 0;
+	cell->index = index + *deltas;
+	cell->cell = _data[cell->index];
+	cell->dir = direction;
+	//if (!cell->cell || cell->cell == VISITED_CELL) {
+	for (int i = 0; i < 8; i++) {
+		cell++;
+		deltas++;
+		cell->index = index + *deltas;
+		cell->cell = _data[cell->index];
+		cell->dir = direction;
 	}
-	if (mask & (MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST 
-			| MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN)) {
-		if (mask & (MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN | MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST)) {
-			if (mask & (MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN)) {
-				if (mask & (MASK_EX_NORTH_DOWN | MASK_EX_NORTH_WEST_UP)) {
-					UPDATE_CELL(DIR_NORTH_DOWN);
-					UPDATE_CELL(DIR_NORTH_WEST_UP);
-				}
-				if (mask & (MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_DOWN)) {
-					UPDATE_CELL(DIR_NORTH_EAST_UP);
-					UPDATE_CELL(DIR_NORTH_WEST_DOWN);
-				}
-			}
-			if (mask & (MASK_EX_NORTH_EAST_DOWN | MASK_EX_SOUTH_WEST | MASK_EX_SOUTH_EAST)) {
-				UPDATE_CELL(DIR_NORTH_EAST_DOWN);
-				UPDATE_CELL(DIR_SOUTH_WEST);
-				UPDATE_CELL(DIR_SOUTH_EAST);
-			}
-		}
-		if (mask & (MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP | MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN)) {
-			if (mask & (MASK_EX_SOUTH_UP | MASK_EX_SOUTH_DOWN | MASK_EX_SOUTH_WEST_UP)) {
-				UPDATE_CELL(DIR_SOUTH_UP);
-				UPDATE_CELL(DIR_SOUTH_DOWN);
-				UPDATE_CELL(DIR_SOUTH_WEST_UP);
-			}
-			if (mask & (MASK_EX_SOUTH_EAST_UP | MASK_EX_SOUTH_WEST_DOWN | MASK_EX_SOUTH_EAST_DOWN)) {
-				UPDATE_CELL(DIR_SOUTH_EAST_UP);
-				UPDATE_CELL(DIR_SOUTH_WEST_DOWN);
-				UPDATE_CELL(DIR_SOUTH_EAST_DOWN);
-			}
-		}
-	}
-	return flagCount;
+	//}
 }
+
