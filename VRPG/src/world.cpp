@@ -295,7 +295,26 @@ struct VolumeVisitor {
 			for (int i = 0; i < 8; i++) {
 				cell++;
 				cell2++;
-				if ((cell2->cell == VISITED_CELL || !cell2->cell) && cell->cell < VISITED_OCCUPIED) {
+				if (cell->cell >= VISITED_OCCUPIED)
+					continue;
+				bool hasPath = (cell2->cell == VISITED_CELL || !cell2->cell);
+				if (!hasPath && i >= 4) {
+					CellToVisit * c1 = cells_to_visit + ((i + 1) & 3) + 5;
+					CellToVisit * c2 = cells_to_visit + ((i - 1) & 3) + 5;
+					if (!c1->cell || c1->cell == VISITED_CELL)
+						hasPath = true;
+					else if(!c2->cell || c2->cell == VISITED_CELL)
+						hasPath = true;
+					else {
+						c1 = cells_to_visit_no_forward + ((i + 1) & 3) + 5;
+						c2 = cells_to_visit_no_forward + ((i - 1) & 3) + 5;
+						if (!c1->cell || c1->cell == VISITED_CELL)
+							hasPath = true;
+						else if (!c2->cell || c2->cell == VISITED_CELL)
+							hasPath = true;
+					}
+				}
+				if (hasPath) {
 					newcells.appendNoCheck(cell->data);
 					volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : VISITED_CELL);
 				}
