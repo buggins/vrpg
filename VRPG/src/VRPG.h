@@ -68,6 +68,7 @@ private:
 	Mesh* _worldMesh;
 	Node* _worldNode;
 	Model* _worldModel;
+	Material * _material;
 	bool _wireframe;
 
 	World * _world;

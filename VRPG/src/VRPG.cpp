@@ -239,25 +239,16 @@ Material * createMaterialBlocks() {
 static int cubeIndex = 1;
 
 Node * VRPG::createWorldNode(Mesh * mesh) {
-	Material * material = createMaterialBlocks();
 
 
-#if	USE_SPOT_LIGHT==1
-	material->getParameter("u_spotLightColor[0]")->setValue(_lightNode->getLight()->getColor());
-	material->getParameter("u_spotLightInnerAngleCos[0]")->setValue(_lightNode->getLight()->getInnerAngleCos());
-	material->getParameter("u_spotLightOuterAngleCos[0]")->setValue(_lightNode->getLight()->getOuterAngleCos());
-	material->getParameter("u_spotLightRangeInverse[0]")->setValue(_lightNode->getLight()->getRangeInverse());
-	material->getParameter("u_spotLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorView);
-	material->getParameter("u_spotLightPosition[0]")->bindValue(_lightNode, &Node::getTranslationView);
-#else
-	material->getParameter("u_pointLightColor[0]")->setValue(_lightNode->getLight()->getColor());
-	material->getParameter("u_pointLightPosition[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
-	material->getParameter("u_pointLightRangeInverse[0]")->setValue(_lightNode->getLight()->getRangeInverse());
-#endif
 	Model* cubeModel = Model::create(mesh);
 	Node * cubeNode = Node::create("world");
-	cubeModel->setMaterial(material);
+	cubeModel->setMaterial(_material);
 	cubeNode->setDrawable(cubeModel);
+	//material->release();
+	//SAFE_RELEASE(material);
+	//cubeModel->release();
+	SAFE_RELEASE(cubeModel);
 	return cubeNode;
 }
 
@@ -332,6 +323,7 @@ void VRPG::initWorld() {
 		world->setCell(5, 1 + i, 6 + i, 3);
 		world->setCell(6, 1 + i, 6 + i, 3);
 	}
+	world->setCell(-6, 1, -6, 7);
 #endif
 	world->setCell(3, 0, -6, 0); // hole
 	world->setCell(3, 0, -7, 0); // hole
@@ -346,6 +338,7 @@ void VRPG::initialize()
 	CRLog::setLogLevel(CRLog::LL_TRACE);
 	CRLog::info("VRPG::initialize()");
 
+	_material = createMaterialBlocks();
 
 	CRLog::trace("initWorld()");
 	initWorld();
@@ -388,6 +381,21 @@ void VRPG::initialize()
 	SAFE_RELEASE(light);
 	//lightNode->rotateX(MATH_DEG_TO_RAD(-25.0f));
 
+
+#if	USE_SPOT_LIGHT==1
+	material->getParameter("u_spotLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	material->getParameter("u_spotLightInnerAngleCos[0]")->setValue(_lightNode->getLight()->getInnerAngleCos());
+	material->getParameter("u_spotLightOuterAngleCos[0]")->setValue(_lightNode->getLight()->getOuterAngleCos());
+	material->getParameter("u_spotLightRangeInverse[0]")->setValue(_lightNode->getLight()->getRangeInverse());
+	material->getParameter("u_spotLightDirection[0]")->bindValue(_lightNode, &Node::getForwardVectorView);
+	material->getParameter("u_spotLightPosition[0]")->bindValue(_lightNode, &Node::getTranslationView);
+#else
+	_material->getParameter("u_pointLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	_material->getParameter("u_pointLightPosition[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
+	_material->getParameter("u_pointLightRangeInverse[0]")->bindValue(_lightNode->getLight(), &Light::getRangeInverse);
+#endif
+
+
 	_group2 = _scene->addNode("group2");
 #if 0
 	int sz = 50;
@@ -428,6 +436,7 @@ void VRPG::initialize()
 void VRPG::finalize()
 {
     SAFE_RELEASE(_scene);
+	SAFE_RELEASE(_material);
 	delete _world;
 }
 
@@ -488,14 +497,16 @@ void VRPG::render(float elapsedTime)
 #define REVISIT_EACH_RENDER 1
 
 	MeshVisitor * meshVisitor = new MeshVisitor();
-#if REVISIT_EACH_RENDER==1
 	_world->visitVisibleCellsAllDirectionsFast(_world->getCamPosition(), meshVisitor);
+#if REVISIT_EACH_RENDER==1
+	Mesh * oldMesh = _worldMesh;
 	Mesh * worldMesh = meshVisitor->createMesh();
 	_worldMesh = worldMesh;
-#else
-	_world->visitVisibleCellsAllDirectionsFast(_world->getCamPosition(), meshVisitor);
+	//delete oldMesh;
 #endif
+
 	Node * worldNode = createWorldNode(_worldMesh);
+
 #if REVISIT_EACH_RENDER==1
 	SAFE_RELEASE(worldMesh);
 #endif
@@ -504,6 +515,8 @@ void VRPG::render(float elapsedTime)
 	_group2->removeAllChildren();
 
 	_group2->addChild(worldNode);
+
+	SAFE_RELEASE(worldNode);
 
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
