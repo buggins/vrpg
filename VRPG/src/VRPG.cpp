@@ -110,12 +110,12 @@ static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0,
 	// data is 11 comp * 4 vert floats
 	switch (face) {
     default:
-    case SOUTH:
-	//case NORTH:
+	case NORTH:
+		//case SOUTH:
 		fillFaceMesh(data, face_vertices_north, x0, y0, z0, tileX, tileY);
 		break;
-    case NORTH:
-	//case SOUTH:
+	case SOUTH:
+		//case NORTH:
 		fillFaceMesh(data, face_vertices_south, x0, y0, z0, tileX, tileY);
 		break;
 	//case EAST:
@@ -221,7 +221,7 @@ Material * createMaterialBlocks() {
 	// Load the texture from file.
 	Texture::Sampler* sampler = material->getParameter("u_diffuseTexture")->setValue(BLOCK_TEXTURE_FILENAME, true);
 	sampler->setFilterMode(Texture::NEAREST_MIPMAP_LINEAR, Texture::NEAREST);
-	material->getStateBlock()->setCullFace(true);
+	material->getStateBlock()->setCullFace(true);//true
 	material->getStateBlock()->setDepthTest(true);
 	material->getStateBlock()->setDepthWrite(true);
 	return material;
@@ -287,11 +287,14 @@ void VRPG::initWorld() {
 	world->setCell(-5, 7, -5, 1);
 	world->setCell(-5, 7, 5, 1);
 #else
-	for (int x = -10; x <= 10; x++)
+	for (int x = -10; x <= 10; x++) {
 		for (int z = -10; z <= 10; z++) {
-			world->setCell(x, 0, z, 1);
-			world->setCell(x, 7, z, 1);
+			if (z < -2 || z > 2 || x < -2 || x > 2) {
+				world->setCell(x, 8, z, 1);
+			}
+			world->setCell(x, 1, z, 1);
 		}
+	}
 	for (int x = -10; x <= 10; x++) {
 		world->setCell(x, 1, -10, 2);
 		world->setCell(x, 2, -10, 2);
@@ -299,8 +302,19 @@ void VRPG::initWorld() {
 		world->setCell(x, 1, 10, 2);
 		world->setCell(x, 2, 10, 2);
 		world->setCell(x, 3, 10, 2);
-		world->setCell(-10, 1, x, 3);
-		world->setCell(10, 1, x, 3);
+		world->setCell(11, 1, x, 2);
+		world->setCell(11, 2, x, 2);
+		world->setCell(11, 3, x, 2);
+		world->setCell(11, 4, x, 2);
+		world->setCell(-11, 1, x, 2);
+		world->setCell(-11, 2, x, 2);
+		world->setCell(-11, 3, x, 2);
+		world->setCell(-11, 4, x, 2);
+	}
+	for (int i = 0; i < 10; i++) {
+		world->setCell(4, 1 + i, 5 + i, 3);
+		world->setCell(5, 1 + i, 5 + i, 3);
+		world->setCell(6, 1 + i, 5 + i, 3);
 	}
 #endif
 	world->setCell(3, 0, -6, 0); // hole
@@ -444,6 +458,7 @@ void VRPG::render(float elapsedTime)
 	Position p = _world->getCamPosition();
 	p.pos -= p.direction.forward;
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
+	_cameraNode->translate(-0.5, -0.5, -0.5);
 
 #define REVISIT_EACH_RENDER 1
 
@@ -514,6 +529,7 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 			pos->pos += pos->direction.up;
 			break;
 		}
+		CRLog::trace("Position: %d,%d,%d direction: %d", pos->pos.x, pos->pos.y, pos->pos.z, pos->direction.dir);
     }
 }
 
