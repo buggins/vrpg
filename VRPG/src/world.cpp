@@ -460,8 +460,20 @@ struct VolumeVisitor2 {
 								|| (canPass(thisPlaneCells[7]) && canPass(nextPlaneCells[7]) && canPass(nextPlaneCells[3]))
 								|| (canPass(thisPlaneCells[8]) && canPass(nextPlaneCells[8]) && canPass(nextPlaneCells[4]));
 						}
+						if (!pathFound && thisPlaneCells[5] == VISITED_CELL) {
+							pathFound = canPass(nextPlaneCells[5]) && (canPass(nextPlaneCells[1]) || canPass(nextPlaneCells[2]));
+						}
+						if (!pathFound && thisPlaneCells[6] == VISITED_CELL) {
+							pathFound = canPass(nextPlaneCells[6]) && (canPass(nextPlaneCells[2]) || canPass(nextPlaneCells[3]));
+						}
+						if (!pathFound && thisPlaneCells[7] == VISITED_CELL) {
+							pathFound = canPass(nextPlaneCells[7]) && (canPass(nextPlaneCells[3]) || canPass(nextPlaneCells[4]));
+						}
+						if (!pathFound && thisPlaneCells[8] == VISITED_CELL) {
+							pathFound = canPass(nextPlaneCells[8]) && (canPass(nextPlaneCells[4]) || canPass(nextPlaneCells[1]));
+						}
 					}
-					if (pathFound) {
+					if (pathFound && cell != BOUND_SKY) {
 						if (cell) {
 							// call visitor callback
 							Vector3d pt = volume.indexToPoint(forwardIndex);
