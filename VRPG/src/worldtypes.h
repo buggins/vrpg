@@ -676,6 +676,8 @@ struct VolumeData {
 		memset(_data, 0, sizeof(cell_t) * DATA_SIZE);
 	}
 
+	cell_t * ptr() { return _data;  }
+
 	/// put cell w/o bounds checking, (0,0,0) is center of array
 	inline void put(Vector3d v, cell_t cell) {
 		_data[((v.y + MAX_DIST) << (ROW_BITS * 2)) | ((v.z + MAX_DIST) << ROW_BITS) | (v.x + MAX_DIST)] = cell;
@@ -724,8 +726,13 @@ struct VolumeData {
 
 	void getNearCellsForDirection(int index, DirEx direction, CellToVisit cells[9]);
 	void getNearCellsForDirectionNoForward(int index, DirEx direction, CellToVisit cells[9]);
+	void getNearCellsForDirection(int index, DirEx direction, cell_t cells[9]);
+	void getNearCellsForDirectionNoForward(int index, DirEx direction, cell_t cells[9]);
 
 	void fillLayer(int y, cell_t cell);
+
+	int * thisPlaneDirections(DirEx dir) { return mainDirectionDeltasNoForward[dir]; }
+	int * nextPlaneDirections(DirEx dir) { return mainDirectionDeltas[dir]; }
 };
 
 #endif// WORLDTYPES_H_INCLUDED

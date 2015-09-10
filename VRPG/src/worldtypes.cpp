@@ -126,3 +126,14 @@ void VolumeData::getNearCellsForDirectionNoForward(int index, DirEx direction, C
 	//}
 }
 
+void VolumeData::getNearCellsForDirection(int index, DirEx direction, cell_t cells[9]) {
+	int * deltas = mainDirectionDeltas[direction];
+	for (int i = 0; i < 9; i++)
+		cells[i] = _data[index + deltas[i]];
+}
+void VolumeData::getNearCellsForDirectionNoForward(int index, DirEx direction, cell_t cells[9]) {
+	int * deltas = mainDirectionDeltasNoForward[direction];
+	for (int i = 0; i < 9; i++)
+		cells[i] = _data[index + deltas[i]];
+}
+

@@ -368,7 +368,7 @@ void VRPG::initialize()
 #if	USE_SPOT_LIGHT==1
 	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 5.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
 #else
-	Light* light = Light::createPoint(0.7f, 0.7f, 0.7f, 14.0f);
+	Light* light = Light::createPoint(0.8f, 0.8f, 0.8f, 12.0f);
 #endif
 	Node* lightNode = _scene->addNode("light");
 	lightNode->setLight(light);

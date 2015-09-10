@@ -343,17 +343,8 @@ struct VolumeVisitor {
 		int startIndex = volume.getIndex(Vector3d());
 		cell_t cell = volume.get(startIndex);
 		volume.put(startIndex, VISITED_CELL);
-		visitNear(startIndex, DIR_NORTH);
-		//visitNear(volume.moveIndex(startIndex, DIR_SOUTH), DIR_NORTH);
-		//visitNear(volume.moveIndex(volume.moveIndex(startIndex, DIR_SOUTH), DIR_SOUTH), DIR_NORTH);
-		visitNear(startIndex, DIR_EAST);
-		visitNear(startIndex, DIR_UP);
-		visitNear(startIndex, DIR_SOUTH);
-		visitNear(startIndex, DIR_WEST);
-		visitNear(startIndex, DIR_DOWN);
-		//visitNear(volume.moveIndex(startIndex, DIR_NORTH), DIR_NORTH);
-		//visitNear(volume.moveIndex(startIndex, DIR_WEST), DIR_WEST);
-		//visitNear(volume.moveIndex(startIndex, DIR_UP), DIR_UP);
+		for (int i = 0; i < 6; i++)
+			visitNear(startIndex, (DirEx)i);
 		for (int distance = 2; distance < volume.size(); distance++) {
 			//CRLog::trace("Range: %d  cells: %d", distance - 1, newcells.length());
 
@@ -406,10 +397,126 @@ struct VolumeVisitor {
 	}
 };
 
+
+bool inline canPass(cell_t cell) { return !cell || cell == VISITED_CELL;  }
+
+struct VolumeVisitor2 {
+	World * world;
+	VolumeData & volume;
+	CellVisitor * visitor;
+	Position & position;
+	VolumeVisitor2(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
+	}
+	~VolumeVisitor2() {
+	}
+	void visitNear(int index, DirEx baseDir) {
+	}
+	void visitPlane(int startIndex, DirEx direction, int distance) {
+		cell_t thisPlaneCells[9];
+		cell_t nextPlaneCells[9];
+		cell_t * data = volume.ptr();
+		int * thisPlaneDirections = volume.thisPlaneDirections(direction);
+		int * nextPlaneDirections = volume.nextPlaneDirections(direction);
+		int offset = distance + 1;
+		int planeSize = distance * 2 + 3;
+		startIndex = startIndex + nextPlaneDirections[0] * distance + thisPlaneDirections[2] * offset + thisPlaneDirections[3] * offset;
+		int rowIndex = startIndex;
+		for (int row = 0; row < planeSize; row++) {
+			int cellIndex = rowIndex; // cell index in old plane
+			for (int col = 0; col < planeSize; col++) {
+				// cellIndex is old plane index
+				int forwardIndex = cellIndex + nextPlaneDirections[0]; // index in next plane
+				cell_t cell = data[forwardIndex];
+				if (cell < VISITED_OCCUPIED) {
+					// new cell is not yet visited at all
+					// check for path to new cell
+					cell_t cellBefore = data[cellIndex];
+					bool pathFound = cellBefore == VISITED_CELL; // direct path
+					if (!pathFound) {
+						// no direct path found, trying to bypass
+						volume.getNearCellsForDirection(cellIndex, direction, nextPlaneCells);
+						volume.getNearCellsForDirectionNoForward(cellIndex, direction, thisPlaneCells);
+						if (thisPlaneCells[1] == VISITED_CELL) {
+							pathFound =
+								canPass(nextPlaneCells[1])
+								|| (canPass(thisPlaneCells[5]) && canPass(nextPlaneCells[5]) && canPass(nextPlaneCells[2]))
+								|| (canPass(thisPlaneCells[8]) && canPass(nextPlaneCells[8]) && canPass(nextPlaneCells[4]));
+						}
+						if (!pathFound && thisPlaneCells[2] == VISITED_CELL) {
+							pathFound =
+								canPass(nextPlaneCells[2])
+								|| (canPass(thisPlaneCells[5]) && canPass(nextPlaneCells[5]) && canPass(nextPlaneCells[1]))
+								|| (canPass(thisPlaneCells[6]) && canPass(nextPlaneCells[6]) && canPass(nextPlaneCells[3]));
+						}
+						if (!pathFound && thisPlaneCells[3] == VISITED_CELL) {
+							pathFound =
+								canPass(nextPlaneCells[3])
+								|| (canPass(thisPlaneCells[6]) && canPass(nextPlaneCells[6]) && canPass(nextPlaneCells[2]))
+								|| (canPass(thisPlaneCells[7]) && canPass(nextPlaneCells[7]) && canPass(nextPlaneCells[4]));
+						}
+						if (!pathFound && thisPlaneCells[4] == VISITED_CELL) {
+							pathFound =
+								canPass(nextPlaneCells[4])
+								|| (canPass(thisPlaneCells[7]) && canPass(nextPlaneCells[7]) && canPass(nextPlaneCells[3]))
+								|| (canPass(thisPlaneCells[8]) && canPass(nextPlaneCells[8]) && canPass(nextPlaneCells[4]));
+						}
+					}
+					if (pathFound) {
+						if (cell) {
+							// call visitor callback
+							Vector3d pt = volume.indexToPoint(forwardIndex);
+							Vector3d pos = pt + position.pos;
+							int visibleFaces = 0;
+							if (pt.y <= 0 &&
+								!world->isOpaque(pos.move(DIR_UP)))
+								visibleFaces |= MASK_UP;
+							if (pt.y >= 0 &&
+								!world->isOpaque(pos.move(DIR_DOWN)))
+								visibleFaces |= MASK_DOWN;
+							if (pt.x <= 0 &&
+								!world->isOpaque(pos.move(DIR_EAST)))
+								visibleFaces |= MASK_EAST;
+							if (pt.x >= 0 &&
+								!world->isOpaque(pos.move(DIR_WEST)))
+								visibleFaces |= MASK_WEST;
+							if (pt.z <= 0 &&
+								!world->isOpaque(pos.move(DIR_SOUTH)))
+								visibleFaces |= MASK_SOUTH;
+							if (pt.z >= 0 &&
+								!world->isOpaque(pos.move(DIR_NORTH)))
+								visibleFaces |= MASK_NORTH;
+							visitor->visit(world, position, pos, cell, visibleFaces);
+						}
+						// mark as visited
+						data[forwardIndex] = canPass(cell) ? VISITED_CELL : VISITED_OCCUPIED;
+					}
+				}
+				cellIndex += thisPlaneDirections[1];
+			}
+			rowIndex += thisPlaneDirections[4];
+		}
+	}
+	void visitAll() {
+		lUInt64 startTs = GetCurrentTimeMillis();
+		CRLog::trace("VolumeVisitor2::visitAll() enter");
+		int startIndex = volume.getIndex(Vector3d());
+		cell_t cell = volume.get(startIndex);
+		volume.put(startIndex, VISITED_CELL);
+		for (int distance = 0; distance < volume.size() - 2; distance++) {
+			for (int dir = 0; dir < 6; dir++)
+				visitPlane(startIndex, (DirEx)dir, distance);
+		}
+		lUInt64 duration = GetCurrentTimeMillis() - startTs;
+		CRLog::trace("VolumeVisitor2::visitAll() exit, lookup took %lld millis", duration);
+	}
+};
+
+
+
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
-	VolumeVisitor visitorHelper(this, position, volumeSnapshot, visitor);
+	VolumeVisitor2 visitorHelper(this, position, volumeSnapshot, visitor);
 	visitorHelper.visitAll();
 }
 
