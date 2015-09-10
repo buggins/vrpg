@@ -41,6 +41,15 @@ static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
 	DIR_EAST, DIR_NORTH, DIR_WEST, DIR_SOUTH,	DIR_NORTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST, DIR_SOUTH_EAST,
 };
 
+static const char * dir_names[] = {
+	"NORTH",
+	"SOUTH",
+	"WEST",
+	"EAST",
+	"UP",
+	"DOWN",
+};
+
 VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 	ROW_BITS = MAX_DIST_BITS + 1;
 	MAX_DIST = 1 << MAX_DIST_BITS;
@@ -75,12 +84,17 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 			mainDirectionDeltas[d][1 + i] = mainDirectionDeltas[d][0] + directionExDelta[dirs[i]];
 			mainDirectionDeltasNoForward[d][1 + i] = directionExDelta[dirs[i]];
 		}
-		//CRLog::trace("Direction : %d", d);
-		//for (int i = 0; i < 9; i++) {
-		//	int delta = mainDirectionDeltas[d][i];
-		//	Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
-		//	CRLog::trace("Delta : %d,%d,%d", pt.x, pt.y, pt.z);
-		//}
+		CRLog::trace("Direction : %d %s", d, dir_names[d]);
+		for (int i = 0; i < 9; i++) {
+			int delta = mainDirectionDeltas[d][i];
+			Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
+			CRLog::trace("   [%d] Delta         : %2d,%2d,%2d", i, pt.x, pt.y, pt.z);
+		}
+		for (int i = 0; i < 9; i++) {
+			int delta = mainDirectionDeltasNoForward[d][i];
+			Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
+			CRLog::trace("   [%d] Delta_no_fwd  : %2d,%2d,%2d", i, pt.x, pt.y, pt.z);
+		}
 	}
 }
 
