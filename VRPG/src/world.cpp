@@ -530,6 +530,10 @@ struct VolumeVisitor2 {
 					appendNewCell(newindex, dist);
 					// diagonal
 					int index0 = index + thisPlaneDirections[dir + 4];
+					Vector3d deltas[9];
+					for (int d = 0; d < 9; d++)
+						deltas[d] = volume.indexToPoint(volume.getIndex(Vector3d()) + thisPlaneDirections[d]);
+					Vector3d newdelta = volume.indexToPoint(volume.getIndex(Vector3d()) + thisPlaneDirections[dir + 4]);
 					Vector3d newpos = volume.indexToPoint(index0);
 					cell = data[index0];
 					if (cell < VISITED_CELL && visitCell(index0, cell))

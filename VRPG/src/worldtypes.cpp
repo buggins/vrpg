@@ -60,13 +60,13 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 	clear();
 	for (int i = 0; i < 64; i++) {
 		int delta = 0;
-		if (i & MASK_NORTH)
-			delta--;
-		if (i & MASK_SOUTH)
-			delta++;
 		if (i & MASK_WEST)
-			delta -= ROW_SIZE;
+			delta--;
 		if (i & MASK_EAST)
+			delta++;
+		if (i & MASK_NORTH)
+			delta -= ROW_SIZE;
+		if (i & MASK_SOUTH)
 			delta += ROW_SIZE;
 		if (i & MASK_UP)
 			delta += ROW_SIZE * ROW_SIZE;
@@ -74,8 +74,9 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 			delta -= ROW_SIZE * ROW_SIZE;
 		directionDelta[i] = delta;
 	}
-	for (int d = DIR_MIN; d < DIR_MAX; d++)
+	for (int d = DIR_MIN; d < DIR_MAX; d++) {
 		directionExDelta[d] = directionDelta[DIR_TO_MASK[d]];
+	}
 	for (int d = 0; d < 6; d++) {
 		DirEx * dirs = NEAR_DIRECTIONS_FOR + 8 * d;
 		mainDirectionDeltas[d][0] = directionExDelta[d];
@@ -84,7 +85,9 @@ VolumeData::VolumeData(int distBits) : MAX_DIST_BITS(distBits) {
 			mainDirectionDeltas[d][1 + i] = mainDirectionDeltas[d][0] + directionExDelta[dirs[i]];
 			mainDirectionDeltasNoForward[d][1 + i] = directionExDelta[dirs[i]];
 		}
-		CRLog::trace("Direction : %d %s", d, dir_names[d]);
+		int delta = directionExDelta[d];
+		Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
+		CRLog::trace("Direction : %d %s (%d,%d,%d)", d, dir_names[d], pt.x, pt.y, pt.z);
 		for (int i = 0; i < 9; i++) {
 			int delta = mainDirectionDeltas[d][i];
 			Vector3d pt = indexToPoint(getIndex(Vector3d()) + delta);
