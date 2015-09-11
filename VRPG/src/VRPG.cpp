@@ -269,7 +269,7 @@ public:
 void VRPG::initWorld() {
 	World * world = new World();
 
-	world->getCamPosition().pos = Vector3d(0, 3, 3);
+	world->getCamPosition().pos = Vector3d(0, 3, 0);
 	world->getCamPosition().direction.set(EAST);
 
 	world->setCell(-5, 3, 5, 1);
@@ -323,12 +323,20 @@ void VRPG::initWorld() {
 		world->setCell(5, 1 + i, 6 + i, 3);
 		world->setCell(6, 1 + i, 6 + i, 3);
 	}
-	world->setCell(-6, 1, -6, 7);
+	for (int i = 0; i < 5; i++) {
+		world->setCell(-6, 1, -6 + i * 2, 7);
+		world->setCell(-6, 7, -6 + i * 2, 7);
+		world->setCell(-6 + i * 2, 1, -6, 7);
+		world->setCell(-6 + i * 2, 7, -6, 7);
+	}
 #endif
 	world->setCell(3, 0, -6, 0); // hole
 	world->setCell(3, 0, -7, 0); // hole
 	world->setCell(4, 0, -6, 0); // hole
 	world->setCell(4, 0, -7, 0); // hole
+
+	world->setCell(2, 2, 0, 8);
+
 	_world = world;
 }
 
@@ -347,7 +355,7 @@ void VRPG::initialize()
 	_scene = Scene::create();
 
 	// Create the camera.
-	Camera* camera = Camera::createPerspective(90.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
+	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
@@ -486,11 +494,12 @@ void VRPG::render(float elapsedTime)
 	}
 
 	Position p = _world->getCamPosition();
-	p.pos -= p.direction.forward;
+	//p.pos -= p.direction.forward;
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 	_lightNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
-	_cameraNode->translate(-0.5, -0.5, -0.5);
-	_lightNode->translate(-0.5, -0.5, -0.5);
+	_cameraNode->translate(0.5, 0.5, 0.5);
+	//_cameraNode->translate(-0.5, -0.5, -0.5);
+	//_lightNode->translate(-0.5, -0.5, -0.5);
 
 	//_cameraNode->rotateX(MATH_DEG_TO_RAD(-10));
 

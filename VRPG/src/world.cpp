@@ -419,6 +419,17 @@ struct DirectionHelper {
 	}
 };
 
+int calcDistance(Vector3d v1, Vector3d v2) {
+	Vector3d v = v1 - v2;
+	if (v.x < 0)
+		v.x = -v.x;
+	if (v.y < 0)
+		v.y = -v.y;
+	if (v.z < 0)
+		v.z = -v.z;
+	return v.x + v.y + v.z;
+}
+
 struct VolumeVisitor2 {
 	World * world;
 	VolumeData & volume;
@@ -466,28 +477,44 @@ struct VolumeVisitor2 {
 		cell_t cell = volume.get(startIndex);
 		if (cell >= VISITED_OCCUPIED)
 			return;
-		for (int dir = 0; dir < 6; dir++) {
+		for (int dir = 0; dir < DIR_MAX; dir++) {
 			if (volume.get(volume.moveIndex(startIndex, (DirEx)dir)) == VISITED_CELL) {
 				if (visitCell(startIndex, cell)) {
 					appendNewCell(startIndex, distance);
+					break;
 				}
 			}
 		}
 	}
 	void appendNewCell(int index, int distance) {
+//		assert(volume.get(index) == 0);
 		Vector3d pos = volume.indexToPoint(index);
-		if (pos.x == -distance)
+		int foundCount = 0;
+		if (pos.x == -distance) {
 			helpers[DIR_WEST].newcells.append(index);
-		if (pos.x == distance)
+			foundCount++;
+		}
+		if (pos.x == distance) {
 			helpers[DIR_EAST].newcells.append(index);
-		if (pos.z == -distance)
+			foundCount++;
+		}
+		if (pos.z == -distance) {
 			helpers[DIR_NORTH].newcells.append(index);
-		if (pos.z == distance)
+			foundCount++;
+		}
+		if (pos.z == distance) {
 			helpers[DIR_SOUTH].newcells.append(index);
-		if (pos.y == -distance)
+			foundCount++;
+		}
+		if (pos.y == -distance) {
 			helpers[DIR_DOWN].newcells.append(index);
-		if (pos.y == distance)
+			foundCount++;
+		}
+		if (pos.y == distance) {
 			helpers[DIR_UP].newcells.append(index);
+			foundCount++;
+		}
+		assert(foundCount > 0);
 	}
 
 	void visitPlaneForward(int startIndex, DirEx direction, int distance) {
@@ -501,9 +528,10 @@ struct VolumeVisitor2 {
 		for (int i = 0; i < helper.oldcells.length(); i++) {
 			int forwardIndex = helper.oldcells[i] + nextPlaneDirections[0]; // index in next plane
 			cell_t cell = data[forwardIndex];
+			assert(cell < VISITED_OCCUPIED);
 			if (visitCell(forwardIndex, cell))
-				appendNewCell(forwardIndex, dist);
-			//helper.newcells.append(forwardIndex);
+				helper.newcells.append(forwardIndex);
+			//appendNewCell(forwardIndex, dist);
 		}
 
 		helper.prepareSpreading();
@@ -521,13 +549,20 @@ struct VolumeVisitor2 {
 		int directCells = helper.forwardCellCount;
 		for (int i = 0; i < directCells; i++) {
 			int index = helper.newcells[i];
+			assert(volume.get(index) == VISITED_CELL);
 			Vector3d oldpos = volume.indexToPoint(index);
+			//CRLog::trace("spreading from %d,%d,%d", oldpos.x, oldpos.y, oldpos.z);
 			for (int dir = 1; dir <= 4; dir++) {
 				int newindex = index + thisPlaneDirections[dir];
 				Vector3d pos = volume.indexToPoint(newindex);
+				assert(calcDistance(oldpos, pos) == 1);
 				cell_t cell = data[newindex];
-				if (cell < VISITED_CELL && visitCell(newindex, cell)) {
-					appendNewCell(newindex, dist);
+				//CRLog::trace("   cell at %d,%d,%d is %d", pos.x, pos.y, pos.z, cell);
+				if (cell < VISITED_OCCUPIED && visitCell(newindex, cell)) {
+					helper.newcells.append(newindex);
+					//CRLog::trace("   added empty cell at %d,%d,%d is %d", pos.x, pos.y, pos.z, cell);
+#if 1
+					//appendNewCell(newindex, dist);
 					// diagonal
 					int index0 = index + thisPlaneDirections[dir + 4];
 					Vector3d deltas[9];
@@ -535,48 +570,113 @@ struct VolumeVisitor2 {
 						deltas[d] = volume.indexToPoint(volume.getIndex(Vector3d()) + thisPlaneDirections[d]);
 					Vector3d newdelta = volume.indexToPoint(volume.getIndex(Vector3d()) + thisPlaneDirections[dir + 4]);
 					Vector3d newpos = volume.indexToPoint(index0);
+					assert(calcDistance(oldpos, newpos) == 2);
+					assert(calcDistance(pos, newpos) == 1);
 					cell = data[index0];
-					if (cell < VISITED_CELL && visitCell(index0, cell))
+					if (cell < VISITED_OCCUPIED && visitCell(index0, cell))
+						//helper.newcells.append(index0);
 						appendNewCell(index0, dist);
 					int prevdir = dir == 1 ? 8 : dir + 3;
 					index0 = index + thisPlaneDirections[prevdir];
 					newpos = volume.indexToPoint(index0);
+					assert(calcDistance(oldpos, newpos) == 2);
+					assert(calcDistance(pos, newpos) == 1);
 					cell = data[index0];
-					if (cell < VISITED_CELL && visitCell(index0, cell))
-						appendNewCell(index0, dist);
+					if (cell < VISITED_OCCUPIED && visitCell(index0, cell))
+						//helper.newcells.append(index0);
+					    appendNewCell(index0, dist);
+#endif
 				}
 			}
 		}
 	}
 
+	void visitCornerCells(int dist) {
+		visitCornerCell(Vector3d(dist - 1, dist, dist), dist);
+		visitCornerCell(Vector3d(dist, dist - 1, dist), dist);
+		visitCornerCell(Vector3d(dist, dist, dist - 1), dist);
+		visitCornerCell(Vector3d(dist, dist, dist), dist);
+		visitCornerCell(Vector3d(dist - 1, dist, dist), dist);
+		visitCornerCell(Vector3d(dist, dist - 1, dist), dist);
+		visitCornerCell(Vector3d(dist, dist, dist - 1), dist);
+
+		visitCornerCell(Vector3d(dist - 1, dist, -dist), dist);
+		visitCornerCell(Vector3d(dist, dist - 1, -dist), dist);
+		visitCornerCell(Vector3d(dist, dist, -dist + 1), dist);
+		visitCornerCell(Vector3d(dist, dist, -dist), dist);
+		visitCornerCell(Vector3d(dist - 1, dist, -dist), dist);
+		visitCornerCell(Vector3d(dist, dist - 1, -dist), dist);
+		visitCornerCell(Vector3d(dist, dist, -dist + 1), dist);
+
+		visitCornerCell(Vector3d(dist - 1, -dist, dist), dist);
+		visitCornerCell(Vector3d(dist, -dist + 1, dist), dist);
+		visitCornerCell(Vector3d(dist, -dist, dist - 1), dist);
+		visitCornerCell(Vector3d(dist, -dist, dist), dist);
+		visitCornerCell(Vector3d(dist - 1, -dist, dist), dist);
+		visitCornerCell(Vector3d(dist, -dist + 1, dist), dist);
+		visitCornerCell(Vector3d(dist, -dist, dist - 1), dist);
+
+		visitCornerCell(Vector3d(dist - 1, -dist, -dist), dist);
+		visitCornerCell(Vector3d(dist, -dist + 1, -dist), dist);
+		visitCornerCell(Vector3d(dist, -dist, -dist + 1), dist);
+		visitCornerCell(Vector3d(dist, -dist, -dist), dist);
+		visitCornerCell(Vector3d(dist - 1, -dist, -dist), dist);
+		visitCornerCell(Vector3d(dist, -dist + 1, -dist), dist);
+		visitCornerCell(Vector3d(dist, -dist, -dist + 1), dist);
+
+		visitCornerCell(Vector3d(-dist + 1, dist, dist), dist);
+		visitCornerCell(Vector3d(-dist, dist - 1, dist), dist);
+		visitCornerCell(Vector3d(-dist, dist, dist - 1), dist);
+		visitCornerCell(Vector3d(-dist, dist, dist), dist);
+		visitCornerCell(Vector3d(-dist + 1, dist, dist), dist);
+		visitCornerCell(Vector3d(-dist, dist - 1, dist), dist);
+		visitCornerCell(Vector3d(-dist, dist, dist - 1), dist);
+
+		visitCornerCell(Vector3d(-dist + 1, dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist, dist - 1, -dist), dist);
+		visitCornerCell(Vector3d(-dist, dist, -dist + 1), dist);
+		visitCornerCell(Vector3d(-dist, dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist + 1, dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist, dist - 1, -dist), dist);
+		visitCornerCell(Vector3d(-dist, dist, -dist + 1), dist);
+
+		visitCornerCell(Vector3d(-dist + 1, -dist, dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist + 1, dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist, dist - 1), dist);
+		visitCornerCell(Vector3d(-dist, -dist, dist), dist);
+		visitCornerCell(Vector3d(-dist + 1, -dist, dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist + 1, dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist, dist - 1), dist);
+
+		visitCornerCell(Vector3d(-dist + 1, -dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist + 1, -dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist, -dist + 1), dist);
+		visitCornerCell(Vector3d(-dist, -dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist + 1, -dist, -dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist + 1, -dist), dist);
+		visitCornerCell(Vector3d(-dist, -dist, -dist + 1), dist);
+	}
+
 	void visitAll() {
 		lUInt64 startTs = GetCurrentTimeMillis();
-		CRLog::trace("VolumeVisitor2::visitAll() enter");
+		//CRLog::trace("VolumeVisitor2::visitAll() enter");
 		int startIndex = volume.getIndex(Vector3d());
 		cell_t cell = volume.get(startIndex);
 		volume.put(startIndex, VISITED_CELL);
 		for (int i = 0; i < 6; i++)
 			helpers[i].start(startIndex);
 		for (int distance = 0; distance < volume.size() - 2; distance++) {
-			for (int dir = 0; dir < 6; dir++)
+			for (int dir = 0; dir <= 5; dir++)
 				helpers[dir].nextDistance();
-			for (int dir = 0; dir < 6; dir++)
+			for (int dir = 5; dir >= 0; dir--)
 				visitPlaneForward(startIndex, (DirEx)dir, distance);
-			for (int dir = 0; dir < 6; dir++)
+			for (int dir = 5; dir >= 0; dir--)
 				visitPlaneSpread(startIndex, (DirEx)dir, distance);
 			// corners
-			int dist = distance + 1;
-			visitCornerCell(Vector3d(dist, dist, dist), dist);
-			visitCornerCell(Vector3d(dist, dist, -dist), dist);
-			visitCornerCell(Vector3d(dist, -dist, dist), dist);
-			visitCornerCell(Vector3d(dist, -dist, -dist), dist);
-			visitCornerCell(Vector3d(-dist, dist, dist), dist);
-			visitCornerCell(Vector3d(-dist, dist, -dist), dist);
-			visitCornerCell(Vector3d(-dist, -dist, dist), dist);
-			visitCornerCell(Vector3d(-dist, -dist, -dist), dist);
+			//visitCornerCells(distance + 1);
 		}
 		lUInt64 duration = GetCurrentTimeMillis() - startTs;
-		CRLog::trace("VolumeVisitor2::visitAll() exit, lookup took %lld millis", duration);
+		//CRLog::trace("VolumeVisitor2::visitAll() exit, lookup took %lld millis", duration);
 	}
 };
 
@@ -585,6 +685,15 @@ struct VolumeVisitor2 {
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
+
+	//for (int z = -5; z < 5; z++) {
+	//	for (int y = -1; y < 5; y++) {
+	//		for (int x = -5; x < 5; x++) {
+	//			assert(getCell(position.pos + Vector3d(x, y, z)) == volumeSnapshot.get(Vector3d(x, y, z)));
+	//		}
+	//	}
+	//}
+
 	VolumeVisitor2 visitorHelper(this, position, volumeSnapshot, visitor);
 	visitorHelper.visitAll();
 }
@@ -620,8 +729,13 @@ void Chunk::getCells(Vector3d srcpos, Vector3d dstpos, Vector3d size, VolumeData
 	}
 }
 
-void World::getCellsNear(Vector3d v, VolumeData & buf) {
+void World::getCellsNear(Vector3d pos, VolumeData & buf) {
+	Vector3d v = pos;
 	buf.clear();
+	//setCell(pos.x, pos.y, pos.z, 15);
+	//setCell(pos.x + 1, pos.y, pos.z, 16);
+	//setCell(pos.x, pos.y, pos.z + 2, 17);
+	//setCell(pos.x, pos.y + 5, pos.z, 18);
 	int sz = buf.size();
 	int y0 = v.y;
 	v.x -= sz;
@@ -668,6 +782,20 @@ void World::getCellsNear(Vector3d v, VolumeData & buf) {
 		}
 		z = nextz;
 	}
+
+	//assert(buf.get(Vector3d(0, 0, 0)) == 15);
+	//assert(buf.get(Vector3d(1, 0, 0)) == 16);
+	//assert(buf.get(Vector3d(0, 0, 2)) == 17);
+	//assert(buf.get(Vector3d(0, 5, 0)) == 18);
+
+	//for (int z = -5; z < 5; z++) {
+	//	for (int y = -1; y < 5; y++) {
+	//		for (int x = -5; x < 5; x++) {
+	//			assert(getCell(pos + Vector3d(x, y, z)) == buf.get(Vector3d(x, y, z)));
+	//		}
+	//	}
+	//}
+
 	if (minLayer != -1) {
 		if (minLayer > y0)
 			minLayer = y0;
