@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include "logger.h"
+#include "blocks.h"
 
 bool World::isOpaque(Vector3d v) {
 	cell_t cell = getCell(v);
-	return cell > 0 && cell != BOUND_SKY;
+	return BLOCK_TYPE_OPAQUE[cell] && cell != BOUND_SKY;
 }
 
 cell_t World::getCell(int x, int y, int z) {
@@ -214,7 +215,7 @@ struct VisitorHelper {
 	}
 };
 
-bool inline canPass(cell_t cell) { return !cell || cell == VISITED_CELL;  }
+//bool inline canPass(cell_t cell) { return !cell || cell == VISITED_CELL;  }
 
 struct DirectionHelper {
 	IntArray oldcells;
@@ -263,7 +264,7 @@ struct VolumeVisitor {
 	bool visitCell(int index, cell_t cell) {
 		if (cell == BOUND_SKY || cell >= VISITED_OCCUPIED)
 			return false;
-		if (cell) {
+		if (BLOCK_TYPE_VISIBLE[cell]) {
 			// call visitor callback
 			Vector3d pt = volume.indexToPoint(index);
 			Vector3d pos = pt + position.pos;
@@ -291,8 +292,8 @@ struct VolumeVisitor {
 		}
 
 		// mark as visited
-		volume.put(index, canPass(cell) ? VISITED_CELL : VISITED_OCCUPIED);
-		return canPass(cell);
+		volume.put(index, BLOCK_TYPE_CAN_PASS[cell] ? VISITED_CELL : VISITED_OCCUPIED);
+		return BLOCK_TYPE_CAN_PASS[cell];
 	}
 	void appendNewCell(int index, int distance) {
 		Vector3d pos = volume.indexToPoint(index);
@@ -349,7 +350,7 @@ struct VolumeVisitor {
 				if (cell < VISITED_OCCUPIED) {
 					helper.spreadcells.append(newindex);
 				}
-				if (canPass(cell)) {
+				if (BLOCK_TYPE_CAN_PASS[cell]) {
 					// diagonal
 					int index0 = index + thisPlaneDirections[dir + 4];
 					cell = data[index0];

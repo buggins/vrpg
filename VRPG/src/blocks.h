@@ -43,6 +43,10 @@ public:
 		return visibility == OPAQUE
 			|| visibility == OPAQUE_SEPARATE_TX;
 	}
+	// block is visible
+	virtual bool isVisible() {
+		return visibility != INVISIBLE;
+	}
 };
 
 
@@ -52,6 +56,8 @@ extern BlockDef * BLOCK_DEFS[256];
 extern bool BLOCK_TYPE_CAN_PASS[256];
 // faster check for block->isOpaque()
 extern bool BLOCK_TYPE_OPAQUE[256];
+// faster check for block->isVisible()
+extern bool BLOCK_TYPE_VISIBLE[256];
 
 /// registers new block type
 void registerBlockType(BlockDef * def);

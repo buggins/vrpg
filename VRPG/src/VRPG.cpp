@@ -205,7 +205,7 @@ Material * createMaterialBlocks() {
 	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "SPOT_LIGHT_COUNT 1");
 #else
 	//SPECULAR;
-	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "VERTEX_COLOR;POINT_LIGHT_COUNT 1");
+	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "VERTEX_COLOR;TEXTURE_DISCARD_ALPHA;POINT_LIGHT_COUNT 1");
 #endif
 	if (material == NULL)
 	{
@@ -324,10 +324,11 @@ void VRPG::initWorld() {
 		world->setCell(6, 1 + i, 6 + i, 3);
 	}
 	for (int i = 0; i < 5; i++) {
-		world->setCell(-6, 1, -6 + i * 2, 7);
-		world->setCell(-6, 7, -6 + i * 2, 7);
-		world->setCell(-6 + i * 2, 1, -6, 7);
-		world->setCell(-6 + i * 2, 7, -6, 7);
+		world->setCell(-6, 1, -6 + i * 2, 50);
+		world->setCell(-6, 2, -6 + i * 2, 50);
+		world->setCell(-6, 7, -6 + i * 2, 50);
+		world->setCell(-6 + i * 2, 1, -6, 50);
+		world->setCell(-6 + i * 2, 7, -6, 50);
 	}
 #endif
 	world->setCell(3, 0, -6, 0); // hole

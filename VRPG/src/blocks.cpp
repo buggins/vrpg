@@ -5,6 +5,7 @@
 BlockDef * BLOCK_DEFS[256];
 bool BLOCK_TYPE_CAN_PASS[256];
 bool BLOCK_TYPE_OPAQUE[256];
+bool BLOCK_TYPE_VISIBLE[256];
 
 /// registers new block type
 void registerBlockType(BlockDef * def) {
@@ -17,6 +18,7 @@ void registerBlockType(BlockDef * def) {
 	// init property shortcuts
 	BLOCK_TYPE_CAN_PASS[def->id] = def->canPass();
 	BLOCK_TYPE_OPAQUE[def->id] = def->isOpaque();
+	BLOCK_TYPE_VISIBLE[def->id] = def->isVisible();
 }
 
 
@@ -37,6 +39,8 @@ struct BlockTypeInitializer {
 		registerBlockType(new BlockDef(6, "gravel", OPAQUE, 5));
 		registerBlockType(new BlockDef(7, "red_sand", OPAQUE, 6));
 		registerBlockType(new BlockDef(8, "sand", OPAQUE, 7));
+
+		registerBlockType(new BlockDef(50, "box", HALF_OPAQUE, 50));
 	}
 };
 
