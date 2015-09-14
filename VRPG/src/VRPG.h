@@ -75,6 +75,7 @@ private:
 
 	World * _world;
 	Font * _font;
+	Camera* _camera;
 
 	void initWorld();
 };

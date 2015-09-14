@@ -375,17 +375,17 @@ void VRPG::initialize()
 	//Matrix cameraShift;
 	//Matrix::createTranslation(0, 0.4f, 0, &cameraShift);
 	//cameraMatrix.multiply(cameraShift);
-	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
+	_camera = Camera::createPerspective(60.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
 	//camera->setProjectionMatrix(cameraMatrix);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
 	// Attach the camera to a node. This determines the position of the camera.
-	cameraNode->setCamera(camera);
+	cameraNode->setCamera(_camera);
 
 	// Make this the active camera of the scene.
-	_scene->setActiveCamera(camera);
-	SAFE_RELEASE(camera);
+	_scene->setActiveCamera(_camera);
+	_camera->release();
 
 	// Move the camera to look at the origin.
 	//cameraNode->translate(0, 5, 0);
@@ -492,6 +492,9 @@ void VRPG::render(float elapsedTime)
     // Clear the color and depth buffers
     clear(CLEAR_COLOR_DEPTH, Vector4::zero(), 1.0f, 0);
 
+	//setViewport(Rectangle(getWidth() / 8, getHeight() / 5, getWidth() * 6 / 8, getHeight() * 6 / 8));
+	setViewport(Rectangle(0, getHeight() / 5, getWidth(), getHeight()));
+
 	_cameraNode->setRotation(Vector3(1, 0, 0), 0);
 	_lightNode->setRotation(Vector3(1, 0, 0), 0);
 
@@ -519,6 +522,14 @@ void VRPG::render(float elapsedTime)
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 	_lightNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 	_cameraNode->translate(0.5, 0.5, 0.5);
+	//getAspectRatio();
+	//getViewport();
+
+	Matrix m2 = _camera->getProjectionMatrix();
+	//m2.m[3] += 0.01;
+	//_camera->setProjectionMatrix(m2);
+
+
 	//_cameraNode->translate(-0.5, -0.5, -0.5);
 	//_lightNode->translate(-0.5, -0.5, -0.5);
 
@@ -609,7 +620,22 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 			break;
 		}
 		CRLog::trace("Position: %d,%d,%d direction: %s", pos->pos.x, pos->pos.y, pos->pos.z, dir_names[pos->direction.dir]);
-    }
+		Matrix m1 = _camera->getViewMatrix();
+		Matrix m2 = _camera->getProjectionMatrix();
+		CRLog::trace("Aspect ratio: %f", getAspectRatio());
+		CRLog::trace("view matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
+			m1.m[0], m1.m[1], m1.m[2], m1.m[3],
+			m1.m[4], m1.m[5], m1.m[6], m1.m[7],
+			m1.m[8], m1.m[9], m1.m[10], m1.m[11],
+			m1.m[12], m1.m[13], m1.m[14], m1.m[15]
+			);
+		CRLog::trace("projection matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
+			m2.m[0], m2.m[1], m2.m[2], m2.m[3],
+			m2.m[4], m2.m[5], m2.m[6], m2.m[7],
+			m2.m[8], m2.m[9], m2.m[10], m2.m[11],
+			m2.m[12], m2.m[13], m2.m[14], m2.m[15]
+			);
+	}
 }
 
 void VRPG::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int contactIndex)
