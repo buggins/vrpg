@@ -158,7 +158,7 @@ public:
 		faceCount++;
 		float * vptr = vertices.append(0.0f, 11 * 4);
 		int * iptr = indexes.append(0, 6);
-		BlockDef * def = BLOCK_DEFS + cell;
+		BlockDef * def = BLOCK_DEFS[cell];
 		int texIndex = def->txIndex;
 		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texIndex);
         for (int i = 0; i < 6; i++)
@@ -347,6 +347,9 @@ void VRPG::initialize()
 	CRLog::info("VRPG::initialize()");
 
 	_material = createMaterialBlocks();
+
+	CRLog::trace("initBlockTypes()");
+	initBlockTypes();
 
 	CRLog::trace("initWorld()");
 	initWorld();
