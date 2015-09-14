@@ -30,6 +30,8 @@ public:
 
 protected:
 
+	static void drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps);
+
     /**
      * @see Game::initialize
      */
@@ -72,6 +74,7 @@ private:
 	bool _wireframe;
 
 	World * _world;
+	Font * _font;
 
 	void initWorld();
 };

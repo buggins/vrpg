@@ -341,11 +341,22 @@ void VRPG::initWorld() {
 	_world = world;
 }
 
+void VRPG::drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps)
+{
+	char buffer[10];
+	sprintf(buffer, "%ufps", fps);
+	font->start();
+	font->drawText(buffer, x, y, color, 40);
+	font->finish();
+}
+
 void VRPG::initialize()
 {
 	CRLog::setFileLogger("vrpg.log", true);
 	CRLog::setLogLevel(CRLog::LL_TRACE);
 	CRLog::info("VRPG::initialize()");
+
+	_font = Font::create("res/arial-distance.gpb");
 
 	_material = createMaterialBlocks();
 
@@ -359,7 +370,13 @@ void VRPG::initialize()
 	_scene = Scene::create();
 
 	// Create the camera.
+	//Matrix cameraMatrix;
+	//Matrix::createPerspective(45.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1, &cameraMatrix);
+	//Matrix cameraShift;
+	//Matrix::createTranslation(0, 0.4f, 0, &cameraShift);
+	//cameraMatrix.multiply(cameraShift);
 	Camera* camera = Camera::createPerspective(45.0f, getAspectRatio(), 0.2f, MAX_VIEW_DISTANCE + 1);
+	//camera->setProjectionMatrix(cameraMatrix);
 	Node* cameraNode = _scene->addNode("camera");
 	_cameraNode = cameraNode;
 
@@ -533,6 +550,8 @@ void VRPG::render(float elapsedTime)
 
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
+
+	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5, getFrameRate());
 }
 
 bool VRPG::drawScene(Node* node)

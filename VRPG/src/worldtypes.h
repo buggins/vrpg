@@ -25,12 +25,14 @@ enum Dir {
 
 /// Extended Dir simple Dir directions can be combined; first 6 items of DirEx match items of Dir - 26 directions (3*3*3-1) 
 enum DirEx {
+	// main directions
 	DIR_NORTH = 0,
 	DIR_SOUTH,
 	DIR_WEST,
 	DIR_EAST,
 	DIR_UP,
 	DIR_DOWN,
+	// combined directions
 	DIR_WEST_UP,
 	DIR_EAST_UP,
 	DIR_WEST_DOWN,
@@ -85,6 +87,7 @@ enum DirMask {
 	MASK_SOUTH_EAST_DOWN = MASK_SOUTH | MASK_EAST | MASK_DOWN,
 };
 
+#if 0
 /// 26 (3*3*3-1) 3d direction masks - combinatino of DirEx
 enum DirMaskEx {
 	MASK_EX_NORTH = (1 << DIR_NORTH),
@@ -115,37 +118,9 @@ enum DirMaskEx {
 	MASK_EX_SOUTH_EAST_DOWN = (1 << DIR_SOUTH_EAST_DOWN),
 	MASK_EX_ALL = (1<<26) - 1,
 };
+#endif
 
-// DirEx to DirMask
-const DirMask DIR_TO_MASK[] = {
-	MASK_NORTH,
-	MASK_SOUTH,
-	MASK_WEST,
-	MASK_EAST,
-	MASK_UP,
-	MASK_DOWN,
-	MASK_WEST_UP,
-	MASK_EAST_UP,
-	MASK_WEST_DOWN,
-	MASK_EAST_DOWN,
-	MASK_NORTH_WEST,
-	MASK_NORTH_EAST,
-	MASK_NORTH_UP,
-	MASK_NORTH_DOWN,
-	MASK_NORTH_WEST_UP,
-	MASK_NORTH_EAST_UP,
-	MASK_NORTH_WEST_DOWN,
-	MASK_NORTH_EAST_DOWN,
-	MASK_SOUTH_WEST,
-	MASK_SOUTH_EAST,
-	MASK_SOUTH_UP,
-	MASK_SOUTH_DOWN,
-	MASK_SOUTH_WEST_UP,
-	MASK_SOUTH_EAST_UP,
-	MASK_SOUTH_WEST_DOWN,
-	MASK_SOUTH_EAST_DOWN
-};
-
+#if 0
 // DirEx to near direction mask
 const int NEAR_DIRECTIONS[] = {
 	MASK_EX_NORTH | MASK_EX_NORTH_EAST | MASK_EX_NORTH_WEST | MASK_EX_NORTH_UP | MASK_EX_NORTH_DOWN | MASK_EX_NORTH_EAST_UP | MASK_EX_NORTH_WEST_UP | MASK_EX_NORTH_EAST_DOWN | MASK_EX_NORTH_WEST_DOWN,
@@ -175,6 +150,7 @@ const int NEAR_DIRECTIONS[] = {
 	MASK_EX_SOUTH_WEST_DOWN,
 	MASK_EX_SOUTH_EAST_DOWN
 };
+#endif
 
 template<typename T, T initValue> struct SymmetricMatrix {
 private:

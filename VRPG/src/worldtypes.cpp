@@ -16,6 +16,35 @@ void VolumeData::putLayer(Vector3d v, cell_t * layer, int dx, int dz, int stripe
 	//CRLog::trace("  non-zero cells copied: %d", nzcount);
 }
 
+// DirEx to DirMask
+const DirMask DIR_TO_MASK[] = {
+	MASK_NORTH,
+	MASK_SOUTH,
+	MASK_WEST,
+	MASK_EAST,
+	MASK_UP,
+	MASK_DOWN,
+	MASK_WEST_UP,
+	MASK_EAST_UP,
+	MASK_WEST_DOWN,
+	MASK_EAST_DOWN,
+	MASK_NORTH_WEST,
+	MASK_NORTH_EAST,
+	MASK_NORTH_UP,
+	MASK_NORTH_DOWN,
+	MASK_NORTH_WEST_UP,
+	MASK_NORTH_EAST_UP,
+	MASK_NORTH_WEST_DOWN,
+	MASK_NORTH_EAST_DOWN,
+	MASK_SOUTH_WEST,
+	MASK_SOUTH_EAST,
+	MASK_SOUTH_UP,
+	MASK_SOUTH_DOWN,
+	MASK_SOUTH_WEST_UP,
+	MASK_SOUTH_EAST_UP,
+	MASK_SOUTH_WEST_DOWN,
+	MASK_SOUTH_EAST_DOWN
+};
 
 static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
 	// NORTH
