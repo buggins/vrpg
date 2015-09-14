@@ -214,190 +214,6 @@ struct VisitorHelper {
 	}
 };
 
-//typedef Array<CellToVisit> CellToVisitArray;
-typedef Array<lUInt64> CellToVisitArray;
-
-//static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
-//	// NORTH
-//	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
-//	// SOUTH
-//	DIR_EAST, DIR_WEST, DIR_UP, DIR_DOWN, DIR_EAST_UP, DIR_WEST_UP, DIR_EAST_DOWN, DIR_WEST_DOWN,
-//	// WEST
-//	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
-//	// EAST
-//	DIR_NORTH, DIR_SOUTH, DIR_UP, DIR_DOWN, DIR_NORTH_UP, DIR_SOUTH_UP, DIR_NORTH_DOWN, DIR_SOUTH_DOWN,
-//	// UP
-//	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
-//	// DOWN
-//	DIR_NORTH, DIR_SOUTH, DIR_EAST, DIR_WEST, DIR_NORTH_EAST, DIR_SOUTH_EAST, DIR_NORTH_WEST, DIR_SOUTH_WEST,
-//};
-
-
-static CellToVisit cells_to_visit[9];
-static CellToVisit cells_to_visit_no_forward[9];
-struct VolumeVisitor {
-	World * world;
-	VolumeData & volume;
-	CellToVisitArray oldcells;
-	CellToVisitArray newcells;
-	CellVisitor * visitor;
-	Position & position;
-	VolumeVisitor(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
-		//for (int y = -4; y < 20; y++) {
-		//	for (int z = -60; z < 60; z++) {
-		//		for (int x = -60; x < 60; x++) {
-		//			cell_t cell = data.get(Vector3d(x, y, z));
-		//			if (cell && cell < BOUND_SKY)
-		//				CRLog::trace("   %d at %d,%d,%d", cell, x, y, z);
-		//		}
-		//	}
-		//}
-	}
-	~VolumeVisitor() {
-	}
-	void visitNear(int index, DirEx baseDir) {
-		//{
-			//Vector3d pt = volume.indexToPoint(index);
-			//CRLog::trace("visitNear %d,%d,%d (%d) dir=%d", pt.x, pt.y, pt.z, index, baseDir);
-		//}
-        
-        cell_t thisDirectionVisitedEmpty = VISITED_EMPTY_START + baseDir;
-        
-		volume.getNearCellsForDirection(index, baseDir, cells_to_visit);
-		CellToVisit * cell = cells_to_visit;
-		//if (cell->cell && cell->cell < VISITED_OCCUPIED) {
-			//Vector3d pt = volume.indexToPoint(cell->index);
-			//CRLog::trace("   occupied cell %d at %d,%d,%d (%d) is already visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
-		//}
-		newcells.reserve(10);
-        
-		if (cell->cell < VISITED_OCCUPIED) {
-			newcells.appendNoCheck(cell->data);
-			//if (cell->cell && cell->cell < BOUND_SKY) {
-			//	Vector3d pt = volume.indexToPoint(cell->index);
-			//	CRLog::trace("    marking cell %d  %d,%d,%d (%d) as visited", cell->cell, pt.x, pt.y, pt.z, cell->index);
-			//}
-			volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
-		}
-		if (!cell->cell || cell->cell >= VISITED_EMPTY_START) {
-			for (int i = 0; i < 8; i++) {
-				cell++;
-                if (cell->cell >= VISITED_EMPTY_START && cell->cell != thisDirectionVisitedEmpty) {
-                    // restore cell value
-                    Vector3d pos = volume.indexToPoint(cell->index) + position.pos;
-                    cell->cell = world->getCell(pos);
-                    
-                }
-				if (cell->cell < VISITED_OCCUPIED) {
-					newcells.appendNoCheck(cell->data);
-					//if (cell->cell != VISITED_CELL) {
-						//Vector3d pt = volume.indexToPoint(cell->index);
-						//CRLog::trace("    marking cell %d,%d,%d (%d) as visited *** %d", pt.x, pt.y, pt.z, cell->index, i + 1);
-						volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
-					//}
-				}
-			}
-		} else  { //if (cell->cell == VISITED_OCCUPIED)
-			//Vector3d pt = volume.indexToPoint(cell->index);
-			//CRLog::trace("    cell %d,%d,%d (%d) is already visited", pt.x, pt.y, pt.z, cell->index);
-			volume.getNearCellsForDirectionNoForward(index, baseDir, cells_to_visit_no_forward);
-			CellToVisit * cell2 = cells_to_visit_no_forward;
-			for (int i = 0; i < 8; i++) {
-				cell++;
-				cell2++;
-				if (cell->cell == VISITED_OCCUPIED || cell->cell == thisDirectionVisitedEmpty)
-					continue;
-				bool hasPath = (cell2->cell >= VISITED_EMPTY_START || !cell2->cell);
-				if (!hasPath && i >= 4) {
-					CellToVisit * c1 = cells_to_visit + ((i + 1) & 3) + 1;
-					CellToVisit * c2 = cells_to_visit + ((i) & 3) + 1;
-					if (!c1->cell || c1->cell == VISITED_CELL)
-						hasPath = true;
-					else if(!c2->cell || c2->cell >= VISITED_EMPTY_START)
-						hasPath = true;
-					else {
-						c1 = cells_to_visit_no_forward + ((i + 1) & 3) + 1;
-						c2 = cells_to_visit_no_forward + ((i) & 3) + 1;
-						if (!c1->cell || c1->cell >= VISITED_EMPTY_START)
-							hasPath = true;
-						else if (!c2->cell || c2->cell >= VISITED_EMPTY_START)
-							hasPath = true;
-					}
-				}
-				if (hasPath) {
-                    if (cell->data >= VISITED_EMPTY_START) {
-                        // restore value from world
-                        Vector3d pos = volume.indexToPoint(cell->index) + position.pos;
-                        cell->cell = world->getCell(pos);
-                    }
-					newcells.appendNoCheck(cell->data);
-					volume.put(cell->index, cell->cell ? VISITED_OCCUPIED : thisDirectionVisitedEmpty);
-				}
-			}
-			return;
-		}
-	}
-	void visitAll() {
-		lUInt64 startTs = GetCurrentTimeMillis();
-		//CRLog::trace("VolumeVisitor::visitAll() enter");
-		int startIndex = volume.getIndex(Vector3d());
-		cell_t cell = volume.get(startIndex);
-		volume.put(startIndex, VISITED_CELL);
-		for (int i = 0; i < 6; i++)
-			visitNear(startIndex, (DirEx)i);
-		for (int distance = 2; distance < volume.size(); distance++) {
-			//CRLog::trace("Range: %d  cells: %d", distance - 1, newcells.length());
-
-			newcells.swap(oldcells);
-			newcells.clear();
-			for (int i = 0; i < oldcells.length(); i++) {
-				CellToVisit currentCell = oldcells[i];
-				//Vector3d pt = volume.indexToPoint(currentCell.index);
-				//CRLog::trace("Visiting cell %d at %d,%d,%d  dir=%d  (index=%d)", currentCell.cell, pt.x, pt.y, pt.z, currentCell.dir, currentCell.index);
-				if (currentCell.cell) {
-					if (currentCell.cell == BOUND_BOTTOM || currentCell.cell == BOUND_SKY)
-						continue;
-
-					Vector3d pt = volume.indexToPoint(currentCell.index);
-					Vector3d pos = pt + position.pos;
-
-					//cell_t cellFromWorld = world->getCell(pos);
-					//assert(cellFromWorld == currentCell.cell);
-
-					int visibleFaces = 0;
-					if (pt.y <= 0 &&
-							!world->isOpaque(pos.move(DIR_UP)))
-						visibleFaces |= MASK_UP;
-					if (pt.y >= 0 && 
-							!world->isOpaque(pos.move(DIR_DOWN)))
-						visibleFaces |= MASK_DOWN;
-					if (pt.x <= 0 && 
-						!world->isOpaque(pos.move(DIR_EAST)))
-						visibleFaces |= MASK_EAST;
-					if (pt.x >= 0 && 
-						!world->isOpaque(pos.move(DIR_WEST)))
-						visibleFaces |= MASK_WEST;
-					if (pt.z <= 0 && 
-						!world->isOpaque(pos.move(DIR_SOUTH)))
-						visibleFaces |= MASK_SOUTH;
-					if (pt.z >= 0 && 
-						!world->isOpaque(pos.move(DIR_NORTH)))
-						visibleFaces |= MASK_NORTH;
-					//CRLog::trace("Visiting cell %d at %d,%d,%d  faces=%02x", currentCell.cell, pos.x, pos.y, pos.z, visibleFaces);
-					visitor->visit(world, position, pos, currentCell.cell, visibleFaces);
-
-				} else {
-					// empty
-					visitNear(currentCell.index, (DirEx)currentCell.dir);
-				}
-			}
-		}
-		lUInt64 duration = GetCurrentTimeMillis() - startTs;
-		//CRLog::trace("VolumeVisitor::visitAll() exit, lookup took %lld millis", duration);
-	}
-};
-
-
 bool inline canPass(cell_t cell) { return !cell || cell == VISITED_CELL;  }
 
 struct DirectionHelper {
@@ -434,15 +250,15 @@ int calcDistance(Vector3d v1, Vector3d v2) {
 	return v.x + v.y + v.z;
 }
 
-struct VolumeVisitor2 {
+struct VolumeVisitor {
 	World * world;
 	VolumeData & volume;
 	CellVisitor * visitor;
 	Position & position;
 	DirectionHelper helpers[6];
-	VolumeVisitor2(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
+	VolumeVisitor(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
 	}
-	~VolumeVisitor2() {
+	~VolumeVisitor() {
 	}
 	bool visitCell(int index, cell_t cell) {
 		if (cell == BOUND_SKY || cell >= VISITED_OCCUPIED)
@@ -584,15 +400,7 @@ void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor 
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
 
-	//for (int z = -5; z < 5; z++) {
-	//	for (int y = -1; y < 5; y++) {
-	//		for (int x = -5; x < 5; x++) {
-	//			assert(getCell(position.pos + Vector3d(x, y, z)) == volumeSnapshot.get(Vector3d(x, y, z)));
-	//		}
-	//	}
-	//}
-
-	VolumeVisitor2 visitorHelper(this, position, volumeSnapshot, visitor);
+	VolumeVisitor visitorHelper(this, position, volumeSnapshot, visitor);
 	visitorHelper.visitAll();
 }
 
