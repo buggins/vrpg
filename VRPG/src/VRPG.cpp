@@ -269,8 +269,8 @@ public:
 void VRPG::initWorld() {
 	World * world = new World();
 
-	world->getCamPosition().pos = Vector3d(0, 3, 0);
-	world->getCamPosition().direction.set(EAST);
+	world->getCamPosition().pos = Vector3d(-7, 2, 7);
+	world->getCamPosition().direction.set(NORTH);
 
 	world->setCell(-5, 3, 5, 1);
 	world->setCell(-2, 1, -7, 8);
