@@ -266,7 +266,24 @@ public:
 	}
 };
 
+static short TERRAIN_INIT_DATA[] = {
+	10, 130, 50, 123, 70,
+	100, 80, 500, 23, 80,
+	10, 130, 300, 173, 20,
+	10, 30, 100, 123, 70,
+	10, 70, 10, 53, 80,
+};
+
 void VRPG::initWorld() {
+
+	lUInt64 start = GetCurrentTimeMillis();
+	CRLog::trace("Generating terrain");
+	TerrainGen terr(9, 9);
+	terr.generate(12345, TERRAIN_INIT_DATA, 7);
+	terr.limit(1, CHUNK_DY - 10);
+	CRLog::trace("terrain generation took %lld ms", GetCurrentTimeMillis() - start);
+
+
 	World * world = new World();
 
 	world->getCamPosition().pos = Vector3d(-7, 2, 7);

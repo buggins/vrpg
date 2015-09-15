@@ -171,7 +171,7 @@ public:
 	void setCell(int x, int y, int z, cell_t value);
 };
 
-class Terrain {
+class TerrainGen {
 	int dx;
 	int dy;
 	int xpow;
@@ -181,11 +181,14 @@ class Terrain {
 	void diamond(int x, int y, int size, int offset);
 	void square(int x, int y, int size, int offset);
 public:
-	Terrain(int xbits, int zbits) : xpow(xbits), ypow(zbits) {
+	TerrainGen(int xbits, int zbits) : xpow(xbits), ypow(zbits) {
 		dx = (1 << xpow) + 1;
 		dy = (1 << ypow) + 1;
 		data = new short[dx * dy];
 		memset(data, 0, dx*dy*sizeof(short));
+	}
+	~TerrainGen() {
+		delete[] data;
 	}
 	void generate(int seed, short * initData, int stepBits);
 	int width() {
