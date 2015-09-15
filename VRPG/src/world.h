@@ -140,15 +140,6 @@ public:
 	}
 };
 
-class World;
-class CellVisitor {
-public:
-	virtual ~CellVisitor() {}
-	virtual void newDirection(Position & camPosition) { }
-	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) { }
-	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) { }
-};
-
 /// Voxel World
 class World {
 private:
@@ -161,6 +152,7 @@ private:
 	VolumeData volumeSnapshot;
 	Vector3d volumePos;
 	bool volumeSnapshotInvalid;
+	VolumeVisitor visitorHelper;
 public:
 	World() : maxVisibleRange(MAX_VIEW_DISTANCE), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL), volumeSnapshot(MAX_VIEW_DISTANCE_BITS), volumeSnapshotInvalid(true) {
 	}

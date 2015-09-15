@@ -622,21 +622,21 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 			break;
 		}
 		CRLog::trace("Position: %d,%d,%d direction: %s", pos->pos.x, pos->pos.y, pos->pos.z, dir_names[pos->direction.dir]);
-		Matrix m1 = _camera->getViewMatrix();
-		Matrix m2 = _camera->getProjectionMatrix();
-		CRLog::trace("Aspect ratio: %f", getAspectRatio());
-		CRLog::trace("view matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
-			m1.m[0], m1.m[1], m1.m[2], m1.m[3],
-			m1.m[4], m1.m[5], m1.m[6], m1.m[7],
-			m1.m[8], m1.m[9], m1.m[10], m1.m[11],
-			m1.m[12], m1.m[13], m1.m[14], m1.m[15]
-			);
-		CRLog::trace("projection matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
-			m2.m[0], m2.m[1], m2.m[2], m2.m[3],
-			m2.m[4], m2.m[5], m2.m[6], m2.m[7],
-			m2.m[8], m2.m[9], m2.m[10], m2.m[11],
-			m2.m[12], m2.m[13], m2.m[14], m2.m[15]
-			);
+		//Matrix m1 = _camera->getViewMatrix();
+		//Matrix m2 = _camera->getProjectionMatrix();
+		//CRLog::trace("Aspect ratio: %f", getAspectRatio());
+		//CRLog::trace("view matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
+		//	m1.m[0], m1.m[1], m1.m[2], m1.m[3],
+		//	m1.m[4], m1.m[5], m1.m[6], m1.m[7],
+		//	m1.m[8], m1.m[9], m1.m[10], m1.m[11],
+		//	m1.m[12], m1.m[13], m1.m[14], m1.m[15]
+		//	);
+		//CRLog::trace("projection matrix:\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f",
+		//	m2.m[0], m2.m[1], m2.m[2], m2.m[3],
+		//	m2.m[4], m2.m[5], m2.m[6], m2.m[7],
+		//	m2.m[8], m2.m[9], m2.m[10], m2.m[11],
+		//	m2.m[12], m2.m[13], m2.m[14], m2.m[15]
+		//	);
 	}
 }
 

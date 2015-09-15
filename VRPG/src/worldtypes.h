@@ -706,6 +706,51 @@ struct VolumeData {
 	int * nextPlaneDirections(DirEx dir) { return mainDirectionDeltas[dir]; }
 };
 
+
+struct DirectionHelper {
+	DirEx dir;
+	IntArray oldcells;
+	IntArray newcells;
+	IntArray spreadcells;
+	int forwardCellCount;
+	void start(int index, DirEx direction);
+	void nextDistance();
+	void prepareSpreading();
+};
+
+class World;
+class CellVisitor {
+public:
+	virtual ~CellVisitor() {}
+	virtual void newDirection(Position & camPosition) { }
+	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) { }
+	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) { }
+};
+
+struct VolumeVisitor {
+	World * world;
+	VolumeData * volume;
+	CellVisitor * visitor;
+	Position * position;
+	DirectionHelper helpers[6];
+	DirEx direction; // camera forward direction
+	DirEx oppdirection; // opposite direction
+	Vector3d dirvector;
+	int distance;
+	VolumeVisitor();
+	void init(World * w, Position * pos, VolumeData * data, CellVisitor * v);
+	~VolumeVisitor();
+	bool visitCell(int index, cell_t cell);
+	void appendNewCell(int index, int distance);
+	void visitPlaneForward(int startIndex, DirEx direction);
+	// move in forward direction
+	void visitPlaneSpread(int startIndex, DirEx direction);
+
+	void visitAll();
+};
+
+
+
 extern const Vector3d DIRECTION_VECTORS[6];
 
 

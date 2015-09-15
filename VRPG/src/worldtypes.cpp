@@ -183,3 +183,21 @@ void VolumeData::getNearCellsForDirectionNoForward(int index, DirEx direction, c
 		cells[i] = _data[index + deltas[i]];
 }
 
+
+void DirectionHelper::start(int index, DirEx direction) {
+	dir = direction;
+	oldcells.clear();
+	newcells.clear();
+	newcells.append(index);
+}
+void DirectionHelper::nextDistance() {
+	forwardCellCount = 0;
+	newcells.swap(oldcells);
+	newcells.clear();
+	for (int i = 0; i < 4; i++) {
+		spreadcells.clear();
+	}
+}
+void DirectionHelper::prepareSpreading() {
+	forwardCellCount = newcells.length();
+}
