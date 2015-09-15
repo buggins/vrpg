@@ -46,6 +46,15 @@ const DirMask DIR_TO_MASK[] = {
 	MASK_SOUTH_EAST_DOWN
 };
 
+const Vector3d DIRECTION_VECTORS[6] = {
+	Vector3d(0, 0, -1),
+	Vector3d(0, 0, 1),
+	Vector3d(-1, 0, 0),
+	Vector3d(1, 0, 0),
+	Vector3d(0, 1, 0),
+	Vector3d(0, -1, 0)
+};
+
 static DirEx NEAR_DIRECTIONS_FOR[6 * 8] = {
 	// NORTH
 	DIR_EAST, DIR_UP, DIR_WEST, DIR_DOWN,		DIR_EAST_UP, DIR_WEST_UP, DIR_WEST_DOWN, DIR_EAST_DOWN,

@@ -333,10 +333,12 @@ public:
 	inline void appendNoCheck(const T & value) {
 		_data[_length++] = value;
 	}
+	/// appends same value several times, return pointer to appended items
 	T* append(const T & value, int count) {
+		reserve(count);
 		int startLen = _length;
 		for (int i = 0; i < count; i++)
-			append(value);
+			_data[_length++] = value;
 		return _data + startLen;
 	}
 	void clear() {
@@ -703,6 +705,9 @@ struct VolumeData {
 	int * thisPlaneDirections(DirEx dir) { return mainDirectionDeltasNoForward[dir]; }
 	int * nextPlaneDirections(DirEx dir) { return mainDirectionDeltas[dir]; }
 };
+
+extern const Vector3d DIRECTION_VECTORS[6];
+
 
 #endif// WORLDTYPES_H_INCLUDED
 

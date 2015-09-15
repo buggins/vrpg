@@ -218,11 +218,13 @@ struct VisitorHelper {
 //bool inline canPass(cell_t cell) { return !cell || cell == VISITED_CELL;  }
 
 struct DirectionHelper {
+	DirEx dir;
 	IntArray oldcells;
 	IntArray newcells;
 	IntArray spreadcells;
 	int forwardCellCount;
-	void start(int index) {
+	void start(int index, DirEx direction) {
+		dir = direction;
 		oldcells.clear();
 		newcells.clear();
 		newcells.append(index);
@@ -257,7 +259,14 @@ struct VolumeVisitor {
 	CellVisitor * visitor;
 	Position & position;
 	DirectionHelper helpers[6];
+	DirEx direction; // camera forward direction
+	DirEx oppdirection; // opposite direction
+	Vector3d dirvector;
+	int distance;
 	VolumeVisitor(World * w, Position & pos, VolumeData & data, CellVisitor * v) : world(w), volume(data), visitor(v), position(pos) {
+		direction = (DirEx)pos.direction.dir;
+		oppdirection = (DirEx)(direction ^ 1);
+		dirvector = pos.direction.forward;
 	}
 	~VolumeVisitor() {
 	}
@@ -267,28 +276,31 @@ struct VolumeVisitor {
 		if (BLOCK_TYPE_VISIBLE[cell]) {
 			// call visitor callback
 			Vector3d pt = volume.indexToPoint(index);
-			Vector3d pos = pt + position.pos;
-
-			int visibleFaces = 0;
-			if (pt.y <= 0 &&
-				!world->isOpaque(pos.move(DIR_UP)))
-				visibleFaces |= MASK_UP;
-			if (pt.y >= 0 &&
-				!world->isOpaque(pos.move(DIR_DOWN)))
-				visibleFaces |= MASK_DOWN;
-			if (pt.x <= 0 &&
-				!world->isOpaque(pos.move(DIR_EAST)))
-				visibleFaces |= MASK_EAST;
-			if (pt.x >= 0 &&
-				!world->isOpaque(pos.move(DIR_WEST)))
-				visibleFaces |= MASK_WEST;
-			if (pt.z <= 0 &&
-				!world->isOpaque(pos.move(DIR_SOUTH)))
-				visibleFaces |= MASK_SOUTH;
-			if (pt.z >= 0 &&
-				!world->isOpaque(pos.move(DIR_NORTH)))
-				visibleFaces |= MASK_NORTH;
-			visitor->visit(world, position, pos, cell, visibleFaces);
+			//int threshold = (distance * 15 / 16);
+			int viewAngleCosMod = pt * dirvector;
+			if (viewAngleCosMod >= 1) { //threshold
+				Vector3d pos = pt + position.pos;
+				int visibleFaces = 0;
+				if (pt.y <= 0 && pt * DIRECTION_VECTORS[DIR_UP] <= 0 &&
+					!world->isOpaque(pos.move(DIR_UP)))
+					visibleFaces |= MASK_UP;
+				if (pt.y >= 0 && pt * DIRECTION_VECTORS[DIR_DOWN] <= 0 &&
+					!world->isOpaque(pos.move(DIR_DOWN)))
+					visibleFaces |= MASK_DOWN;
+				if (pt.x <= 0 && pt * DIRECTION_VECTORS[DIR_EAST] <= 0 &&
+					!world->isOpaque(pos.move(DIR_EAST)))
+					visibleFaces |= MASK_EAST;
+				if (pt.x >= 0 && pt * DIRECTION_VECTORS[DIR_WEST] <= 0 &&
+					!world->isOpaque(pos.move(DIR_WEST)))
+					visibleFaces |= MASK_WEST;
+				if (pt.z <= 0 && pt * DIRECTION_VECTORS[DIR_SOUTH] <= 0 &&
+					!world->isOpaque(pos.move(DIR_SOUTH)))
+					visibleFaces |= MASK_SOUTH;
+				if (pt.z >= 0 && pt * DIRECTION_VECTORS[DIR_NORTH] <= 0 &&
+					!world->isOpaque(pos.move(DIR_NORTH)))
+					visibleFaces |= MASK_NORTH;
+				visitor->visit(world, position, pos, cell, visibleFaces);
+			}
 		}
 
 		// mark as visited
@@ -297,6 +309,8 @@ struct VolumeVisitor {
 	}
 	void appendNewCell(int index, int distance) {
 		Vector3d pos = volume.indexToPoint(index);
+		if (dirvector * pos < 0)
+			return; // skip opposite direction
 
 		if (pos.x == -distance)
 			helpers[DIR_WEST].newcells.append(index);
@@ -312,7 +326,7 @@ struct VolumeVisitor {
 			helpers[DIR_UP].newcells.append(index);
 	}
 
-	void visitPlaneForward(int startIndex, DirEx direction, int distance) {
+	void visitPlaneForward(int startIndex, DirEx direction) {
 		DirectionHelper & helper = helpers[direction];
 		cell_t * data = volume.ptr();
 		int * thisPlaneDirections = volume.thisPlaneDirections(direction);
@@ -331,7 +345,7 @@ struct VolumeVisitor {
 	}
 
 	// move in forward direction
-	void visitPlaneSpread(int startIndex, DirEx direction, int distance) {
+	void visitPlaneSpread(int startIndex, DirEx direction) {
 		DirectionHelper & helper = helpers[direction];
 		cell_t * data = volume.ptr();
 		int * thisPlaneDirections = volume.thisPlaneDirections(direction);
@@ -381,14 +395,17 @@ struct VolumeVisitor {
 		cell_t cell = volume.get(startIndex);
 		volume.put(startIndex, VISITED_CELL);
 		for (int i = 0; i < 6; i++)
-			helpers[i].start(startIndex);
-		for (int distance = 0; distance < volume.size() - 2; distance++) {
+			helpers[i].start(startIndex, (DirEx)i);
+		for (distance = 0; distance < volume.size() - 2; distance++) {
 			for (int dir = 5; dir >= 0; dir--)
-				helpers[dir].nextDistance();
+				if (dir != oppdirection)
+					helpers[dir].nextDistance();
 			for (int dir = 5; dir >= 0; dir--)
-				visitPlaneForward(startIndex, (DirEx)dir, distance);
+				if (dir != oppdirection)
+					visitPlaneForward(startIndex, (DirEx)dir);
 			for (int dir = 5; dir >= 0; dir--)
-				visitPlaneSpread(startIndex, (DirEx)dir, distance);
+				if (dir != oppdirection)
+					visitPlaneSpread(startIndex, (DirEx)dir);
 		}
 		lUInt64 duration = GetCurrentTimeMillis() - startTs;
 		CRLog::trace("VolumeVisitor2::visitAll() exit, lookup took %lld millis", duration);

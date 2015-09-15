@@ -562,7 +562,9 @@ void VRPG::render(float elapsedTime)
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
 
-	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5, getFrameRate());
+	setViewport(Rectangle(0, 0, getWidth(), getHeight()));
+
+	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5 + getHeight() * 4 /5, getFrameRate());
 }
 
 bool VRPG::drawScene(Node* node)
