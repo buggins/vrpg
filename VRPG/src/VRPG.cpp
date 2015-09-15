@@ -525,7 +525,7 @@ void VRPG::render(float elapsedTime)
 	//getAspectRatio();
 	//getViewport();
 
-	Matrix m2 = _camera->getProjectionMatrix();
+	//Matrix m2 = _camera->getProjectionMatrix();
 	//m2.m[3] += 0.01;
 	//_camera->setProjectionMatrix(m2);
 
@@ -562,9 +562,10 @@ void VRPG::render(float elapsedTime)
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
 
-	setViewport(Rectangle(0, 0, getWidth(), getHeight()));
+	setViewport(Rectangle(0, 0, getWidth(), getHeight() / 5));
 
-	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5 + getHeight() * 4 /5, getFrameRate());
+
+	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5, getFrameRate());
 }
 
 bool VRPG::drawScene(Node* node)

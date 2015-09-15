@@ -171,6 +171,47 @@ public:
 	void setCell(int x, int y, int z, cell_t value);
 };
 
+class Terrain {
+	int dx;
+	int dy;
+	int xpow;
+	int ypow;
+	short * data;
+	Random rnd;
+	void diamond(int x, int y, int size, int offset);
+	void square(int x, int y, int size, int offset);
+public:
+	Terrain(int xbits, int zbits) : xpow(xbits), ypow(zbits) {
+		dx = (1 << xpow) + 1;
+		dy = (1 << ypow) + 1;
+		data = new short[dx * dy];
+		memset(data, 0, dx*dy*sizeof(short));
+	}
+	void generate(int seed, short * initData, int stepBits);
+	int width() {
+		return dx - 1;
+	}
+	int height() {
+		return dy - 1;
+	}
+	int get(int x, int y) {
+		if (x < 0 || y < 0 || x >= dx || y >= dy)
+			return 0;
+		return data[(y << ypow) + y + x];
+	}
+	void set(int x, int y, int value) {
+		if (x < 0 || y < 0 || x >= dx || y >= dy)
+			return;
+		if (value < -32767)
+			value = -32767;
+		if (value > 32767)
+			value = 32767;
+		data[(y << ypow) + y + x] = value;
+	}
+	/// ensure that data is in range [minvalue, maxvalue]
+	void limit(int minvalue, int maxvalue);
+};
+
 #define UNIT_TESTS 1
 void runWorldUnitTests();
 

@@ -549,3 +549,63 @@ void runWorldUnitTests() {
 #endif
 }
 
+/// ensure that data is in range [minvalue, maxvalue]
+void Terrain::limit(int minvalue, int maxvalue) {
+	// find actual min/max
+	int minv, maxv;
+	minv = maxv = get(0, 0);
+	for (int y = 0; y <= dy; y++) {
+		for (int x = 0; x <= dx; x++) {
+			int v = get(x, y);
+			if (minv > v)
+				minv = v;
+			if (maxv < v)
+				maxv = v;
+		}
+	}
+	int mul = (maxvalue - minvalue);
+	int div = (maxv - minv);
+	for (int y = 0; y <= dy; y++) {
+		for (int x = 0; x <= dx; x++) {
+			set(x, y, minvalue + (get(x, y) - minv) * mul / div);
+		}
+	}
+
+}
+
+void Terrain::generate(int seed, short * initData, int stepBits) {
+	rnd.setSeed(seed);
+	int step = 1 << stepBits;
+	for (int y = 0; y <= dy; y++) {
+		for (int x = 0; x <= dx; x++) {
+			set(x, y, *initData++);
+		}
+	}
+	int half = step >> 1;
+	while (half > 0) {
+		int scale = step;
+		for (int y = half; y < dy; y += step) {
+			for (int x = half; x < dx; x++) {
+				square(x, y, half, rnd.nextInt(scale * 2) - scale);
+			}
+		}
+		for (int y = 0; y <= dy; y += half) {
+			for (int x = (y + half) % step; x <= dx; x += step) {
+				diamond(x, y, half, rnd.nextInt(scale * 2) - scale);
+			}
+		}
+		step >>= 1;
+		half >>= 1;
+	}
+}
+
+
+void Terrain::diamond(int x, int y, int size, int offset) {
+	int avg = (get(x, y - size) + get(x + size, y) + get(x, y + size) + get(x - size, y)) >> 2;
+	set(x, y, avg + offset);
+}
+
+void Terrain::square(int x, int y, int size, int offset) {
+	int avg = (get(x - size, y - size) + get(x + size, y - size) + get(x - size, y + size) + get(x - size, y - size)) >> 2;
+	set(x, y, avg + offset);
+}

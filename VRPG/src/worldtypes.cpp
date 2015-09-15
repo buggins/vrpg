@@ -201,3 +201,21 @@ void DirectionHelper::nextDistance() {
 void DirectionHelper::prepareSpreading() {
 	forwardCellCount = newcells.length();
 }
+
+
+static lUInt64 seedUniquifier = 8682522807148012L;
+
+Random::Random() {
+	setSeed(++seedUniquifier + GetCurrentTimeMillis() * RANDOM_MULTIPLIER);
+}
+
+int Random::nextInt(int n) {
+	if ((n & -n) == n)  // i.e., n is a power of 2
+		return (int)((n * (lUInt64)next(31)) >> 31);
+	int bits, val;
+	do {
+		bits = next(31);
+		val = bits % n;
+	} while (bits - val + (n - 1) < 0);
+	return val;
+}

@@ -750,6 +750,27 @@ struct VolumeVisitor {
 };
 
 
+#define RANDOM_MULTIPLIER ((1LL << 48) - 1)
+#define RANDOM_MASK ((1LL << 48) - 1)
+#define RANDOM_ADDEND 0xBLL
+struct Random {
+	lUInt64 seed;
+	Random();
+	void setSeed(lUInt64 value) {
+		seed = (value ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
+	}
+
+	int next(int bits) {
+		seed = (seed * RANDOM_MULTIPLIER + RANDOM_ADDEND) & RANDOM_MASK;
+		return (int)(seed >> (48 - bits));
+	}
+
+	int nextInt() {
+		return next(31);
+	}
+	int nextInt(int n);
+};
+
 
 extern const Vector3d DIRECTION_VECTORS[6];
 
