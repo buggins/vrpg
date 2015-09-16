@@ -205,7 +205,7 @@ Material * createMaterialBlocks() {
 	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "SPOT_LIGHT_COUNT 1");
 #else
 	//SPECULAR;
-	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "VERTEX_COLOR;TEXTURE_DISCARD_ALPHA;POINT_LIGHT_COUNT 1");
+	Material* material = Material::create("res/shaders/textured.vert", "res/shaders/textured.frag", "VERTEX_COLOR;TEXTURE_DISCARD_ALPHA;POINT_LIGHT_COUNT 1;DIRECTIONAL_LIGHT_COUNT 1");
 #endif
 	if (material == NULL)
 	{
@@ -232,6 +232,9 @@ Material * createMaterialBlocks() {
 	material->getStateBlock()->setCullFace(true);//true
 	material->getStateBlock()->setDepthTest(true);
 	material->getStateBlock()->setDepthWrite(true);
+	material->getStateBlock()->setBlend(true);
+	material->getStateBlock()->setBlendSrc(RenderState::BLEND_SRC_ALPHA);
+	material->getStateBlock()->setBlendDst(RenderState::BLEND_ONE_MINUS_SRC_ALPHA);
 	//material->getStateBlock()->set
 	return material;
 }
@@ -276,17 +279,33 @@ static short TERRAIN_INIT_DATA[] = {
 
 void VRPG::initWorld() {
 
+	World * world = new World();
+	int y0 = 3;
+
+#if 1
 	lUInt64 start = GetCurrentTimeMillis();
 	CRLog::trace("Generating terrain");
-	TerrainGen terr(9, 9);
-	terr.generate(12345, TERRAIN_INIT_DATA, 7);
-	terr.limit(1, CHUNK_DY - 10);
+
+	int terrSizeBits = 10;
+	int terrSize = 1 << terrSizeBits;
+	TerrainGen terr(terrSizeBits, terrSizeBits); // 512x512
+	terr.generate(123456, TERRAIN_INIT_DATA, terrSizeBits - 2); // init grid is 4x4 (1 << (9-7))
+	terr.limit(5, CHUNK_DY / 2);
+	for (int x = 0; x < terrSize; x++) {
+		for (int z = 0; z < terrSize; z++) {
+			int h = terr.get(x, z);
+			for (int y = 0; y < h; y++) {
+				world->setCell(x - terrSize / 2, y, z - terrSize / 2, 3);
+				assert(world->getCell(x - terrSize / 2, y, z - terrSize / 2) == 3);
+			}
+		}
+	}
+	y0 = terr.get(terrSize / 2, terrSize / 2) + 8;
 	CRLog::trace("terrain generation took %lld ms", GetCurrentTimeMillis() - start);
 
+#endif
 
-	World * world = new World();
-
-	world->getCamPosition().pos = Vector3d(-7, 2, 7);
+	world->getCamPosition().pos = Vector3d(0, y0, 0);
 	world->getCamPosition().direction.set(NORTH);
 
 	world->setCell(-5, 3, 5, 1);
@@ -409,7 +428,14 @@ void VRPG::initialize()
 	//cameraNode->rotateY(MATH_DEG_TO_RAD(45.25f));
 
 	// Create a white light.
-	//Light* light = Light::createDirectional(0.75f, 0.75f, 0.75f);
+	Light* dirLight = Light::createDirectional(0.75f, 0.75f, 0.75f);
+	Node* dirlightNode = _scene->addNode("dirlight");
+	dirlightNode->setLight(dirLight);
+	_dirlight = dirLight;
+	_dirlightNode = dirlightNode;
+	SAFE_RELEASE(dirLight);
+	_dirlightNode->rotateX(MATH_DEG_TO_RAD(45));
+	_dirlightNode->rotateY(MATH_DEG_TO_RAD(30));
 
 #if	USE_SPOT_LIGHT==1
 	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 5.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
@@ -440,7 +466,9 @@ void VRPG::initialize()
 	_material->getParameter("u_pointLightPosition[0]")->bindValue(_lightNode, &Node::getForwardVectorWorld);
 	_material->getParameter("u_pointLightRangeInverse[0]")->bindValue(_lightNode->getLight(), &Light::getRangeInverse);
 #endif
-
+	_material->getParameter("u_directionalLightColor[0]")->setValue(_lightNode->getLight()->getColor());
+	//_material->getParameter("u_ambientColor")->setValue(Vector3(0.0f, 0.0f, 0.0f));
+	_material->getParameter("u_directionalLightDirection[0]")->bindValue(_dirlightNode, &Node::getForwardVectorView); 
 
 	_group2 = _scene->addNode("group2");
 #if 0
@@ -539,6 +567,7 @@ void VRPG::render(float elapsedTime)
 	_cameraNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 	_lightNode->setTranslation(p.pos.x, p.pos.y, p.pos.z);
 	_cameraNode->translate(0.5, 0.5, 0.5);
+	_cameraNode->rotateX(MATH_DEG_TO_RAD(-10));
 	//getAspectRatio();
 	//getViewport();
 

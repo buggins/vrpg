@@ -65,6 +65,8 @@ private:
     Node * _group2;
 	Light* _light;
 	Node* _lightNode;
+	Light* _dirlight;
+	Node* _dirlightNode;
 	Mesh * _cubeMesh;
 	Node* _cameraNode;
 	Mesh* _worldMesh;
