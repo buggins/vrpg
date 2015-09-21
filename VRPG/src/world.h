@@ -12,7 +12,7 @@ const int MAX_VIEW_DISTANCE = (1 << MAX_VIEW_DISTANCE_BITS);
 #define CHUNK_DX (1<<CHUNK_DX_SHIFT)
 #define CHUNK_DX_MASK (CHUNK_DX - 1)
 
-#define CHUNK_DY_SHIFT 8
+#define CHUNK_DY_SHIFT 7
 #define CHUNK_DY (1<<CHUNK_DY_SHIFT)
 #define CHUNK_DY_MASK (CHUNK_DY - 1)
 
@@ -190,7 +190,9 @@ public:
 	~TerrainGen() {
 		delete[] data;
 	}
+	void filter(int range);
 	void generate(int seed, short * initData, int stepBits);
+	void generateWithScale(int seed, short * initData, int stepBits, TerrainGen & scale);
 	int width() {
 		return dx - 1;
 	}

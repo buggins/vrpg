@@ -574,6 +574,59 @@ void TerrainGen::limit(int minvalue, int maxvalue) {
 	}
 }
 
+void TerrainGen::generateWithScale(int seed, short * initData, int stepBits, TerrainGen & scaleMap) {
+	rnd.setSeed(seed);
+	int step = 1 << stepBits;
+	for (int y = 0; y <= dy; y += step) {
+		for (int x = 0; x <= dx; x += step) {
+			set(x, y, *initData++);
+		}
+	}
+	int half = step >> 1;
+	while (half > 0) {
+		for (int y = half; y < dy; y += step) {
+			for (int x = half; x < dx; x++) {
+				int scale = (scaleMap.get(x, y) * step) >> 8;
+				scale = rnd.nextInt(scale * 2) - scale;
+				if (step < 4)
+					scale = 0;
+				square(x, y, half, scale);
+			}
+		}
+		for (int y = 0; y <= dy; y += half) {
+			for (int x = (y + half) % step; x <= dx; x += step) {
+				int scale = (scaleMap.get(x, y) * step) >> 8;
+				scale = rnd.nextInt(scale * 2) - scale;
+				if (step < 4)
+					scale = 0;
+				diamond(x, y, half, scale);
+			}
+		}
+		step >>= 1;
+		half >>= 1;
+	}
+}
+
+void TerrainGen::filter(int range) {
+	short * tmp = new short[dx * dy];
+	memset(tmp, 0, dx*dy*sizeof(short));
+	int div = (range * 2 + 1) * (range * 2 + 1);
+	for (int y = 0; y <= dy; y++) {
+		for (int x = 0; x <= dx; x++) {
+			int s = 0;
+			for (int yy = -range; yy <= range; yy++) {
+				for (int xx = -range; xx <= range; xx++) {
+					s += get(x + xx, y + yy);
+				}
+			}
+			s /= div;
+			tmp[(y << ypow) + y + x] = (short)s;
+		}
+	}
+	memcpy(data, tmp, dx*dy*sizeof(short));
+	delete[] tmp;
+}
+
 void TerrainGen::generate(int seed, short * initData, int stepBits) {
 	rnd.setSeed(seed);
 	int step = 1 << stepBits;

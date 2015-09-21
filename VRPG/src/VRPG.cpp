@@ -221,7 +221,7 @@ Material * createMaterialBlocks() {
 	//u_specularExponent = 50
 	material->getParameter("u_specularExponent")->setValue(50.0f);
 	// Set the ambient color of the material.
-	material->getParameter("u_ambientColor")->setValue(Vector3(0.2f, 0.2f, 0.2f));
+	material->getParameter("u_ambientColor")->setValue(Vector3(0.4f, 0.4f, 0.4f));
 	//u_ambientColor = SCENE_AMBIENT_COLOR
 
 	// Bind the light's color and direction to the material.
@@ -270,11 +270,47 @@ public:
 };
 
 static short TERRAIN_INIT_DATA[] = {
-	10, 130, 50, 123, 70,
-	100, 80, 500, 23, 80,
-	10, 130, 300, 173, 20,
-	10, 30, 100, 123, 70,
-	10, 70, 10, 53, 80,
+	//                                      V
+	10,  10,  10,  10,  30,  30,  30,  30,  30,  30,  30,  30,  10,  10,  10,  10,  10,
+	10,  10,  20,  50,  50,  50,  50,  50,  50,  50,  50,  50,  20,  20,  20,  20,  10,
+	10,  20,  20,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  20,  20,  10,
+	10,  20,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  20,  10,
+	10,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  20,  30,
+	30,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  30,
+	30,  50,  50,  50,  50,  50,  50,  50, 120,  50,  50,  50,  50,  50,  50,  50,  30,
+	30,  50,  50,  50,  50,  50,  50, 110, 140, 130,  50,  50,  50,  50,  50,  50,  30,
+	30,  50,  50,  50,  50,  50,  50, 140, 150, 140,  50,  50,  50,  50,  50,  50,  30, // <==
+	30,  50,  50,  50,  50,  50,  50, 110, 140, 120,  50,  50,  50,  50,  50,  50,  30,
+	30,  50,  50,  50,  50,  50,  50,  50, 110,  50,  50,  50,  50,  50,  50,  50,  30,
+	30,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  10,
+	30,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  10,
+	30,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  40,  50,  10,
+	30,  20,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  40,  20,  20,  10,
+	30,  20,  20,  50,  50,  50,  50,  50,  50,  50,  40,  20,  20,  20,  20,  20,  10,
+	30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  10,  10,  10,  10,  10,
+	//                                      ^
+};
+
+static short TERRAIN_SCALE_DATA[] = {
+	//                                      V
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  30,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  45,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  80,  20,  20,  20,  40,  50,  40,  20,  20,
+	20,  20,  20,  20,  20,  20,  90,  20,  80,  20,  30,  20,  20,  30,  20,  20,  20,
+	20,  20,  20,  20,  20,  90,  20,  80,  30,  20,  40,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  90,  30,  40,  30,  50,  20,  20,  20,  20,  20,  20, // <==
+	20,  20,  20,  20,  20,  20,  50,  20,  30,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  40,  70,  40,  90,  20,  40,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  80,  20,  50,  70,  50,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  60,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+	//                                      ^
 };
 
 void VRPG::initWorld() {
@@ -288,15 +324,28 @@ void VRPG::initWorld() {
 
 	int terrSizeBits = 10;
 	int terrSize = 1 << terrSizeBits;
+	TerrainGen scaleterr(terrSizeBits, terrSizeBits); // 512x512
+	scaleterr.generate(4321, TERRAIN_SCALE_DATA, terrSizeBits - 4); // init grid is 16x16 (1 << (9-7))
+	scaleterr.filter(1);
+	//scaleterr.filter(2);
+	scaleterr.limit(0, 90);
 	TerrainGen terr(terrSizeBits, terrSizeBits); // 512x512
-	terr.generate(123456, TERRAIN_INIT_DATA, terrSizeBits - 2); // init grid is 4x4 (1 << (9-7))
-	terr.limit(5, CHUNK_DY / 2);
+	terr.generateWithScale(123456, TERRAIN_INIT_DATA, terrSizeBits - 4, scaleterr); // init grid is 16x16 (1 << (9-7))
+	terr.filter(1);
+	terr.limit(5, CHUNK_DY * 3 / 4);
+	terr.filter(1);
 	for (int x = 0; x < terrSize; x++) {
 		for (int z = 0; z < terrSize; z++) {
 			int h = terr.get(x, z);
+			cell_t cell = 3;
+			if (h < CHUNK_DY / 4)
+				cell = 4;
+			else if (h < CHUNK_DY / 3)
+				cell = 5;
+			else if (h < CHUNK_DY / 2)
+				cell = 6;
 			for (int y = 0; y < h; y++) {
-				world->setCell(x - terrSize / 2, y, z - terrSize / 2, 3);
-				assert(world->getCell(x - terrSize / 2, y, z - terrSize / 2) == 3);
+				world->setCell(x - terrSize / 2, y, z - terrSize / 2, cell);
 			}
 		}
 	}
@@ -440,7 +489,7 @@ void VRPG::initialize()
 #if	USE_SPOT_LIGHT==1
 	Light* light = Light::createSpot(1.5f, 0.75f, 0.75f, 5.0f, MATH_DEG_TO_RAD(60.0f), MATH_DEG_TO_RAD(90.0f));
 #else
-	Light* light = Light::createPoint(0.8f, 0.8f, 0.8f, 12.0f);
+	Light* light = Light::createPoint(0.8f, 0.8f, 0.8f, 50.0f);
 #endif
 	Node* lightNode = _scene->addNode("light");
 	lightNode->setLight(light);
