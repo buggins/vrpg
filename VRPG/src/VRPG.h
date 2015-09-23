@@ -30,7 +30,7 @@ public:
 
 protected:
 
-	static void drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps);
+	void drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps);
 
     /**
      * @see Game::initialize

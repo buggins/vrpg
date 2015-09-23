@@ -5,6 +5,16 @@
 
 #define USE_SPOT_LIGHT 0
 
+static const char * dir_names[] = {
+	"NORTH",
+	"SOUTH",
+	"WEST",
+	"EAST",
+	"UP",
+	"DOWN",
+};
+
+
 // Declare our game instance
 VRPG game;
 
@@ -132,6 +142,8 @@ static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0,
 	}
 }
 
+static bool HIGHLIGHT_GRID = true;
+
 class MeshVisitor : public CellVisitor {
 	FloatArray vertices;
 	IntArray indexes;
@@ -163,6 +175,13 @@ public:
 		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texIndex);
         for (int i = 0; i < 6; i++)
             iptr[i] = v0 + face_indexes[i];
+		if (HIGHLIGHT_GRID && ((pos.x & 7) == 0 || (pos.z & 7) == 0)) {
+			for (int i = 0; i < 4; i++) {
+				vptr[11 * i + 6 + 0] = 1.4f;
+				vptr[11 * i + 6 + 1] = 1.4f;
+				vptr[11 * i + 6 + 2] = 1.4f;
+			}
+		}
 //        float vbuf[8*4];
 //        int ibuf[6];
 //        createFaceMesh(vbuf, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
@@ -428,10 +447,15 @@ void VRPG::initWorld() {
 
 void VRPG::drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps)
 {
-	char buffer[10];
-	sprintf(buffer, "%ufps", fps);
+	char buffer[64];
+	sprintf(buffer, "%s  x: %d z: %d  h:%d   %ufps", 
+		dir_names[_world->getCamPosition().direction.dir],
+		_world->getCamPosition().pos.x,
+		_world->getCamPosition().pos.z, 
+		_world->getCamPosition().pos.y,
+		fps);
 	font->start();
-	font->drawText(buffer, x, y, color, 40);
+	font->drawText(buffer, x, y, color, font->getSize() * 2);
 	font->finish();
 }
 
@@ -441,7 +465,8 @@ void VRPG::initialize()
 	CRLog::setLogLevel(CRLog::LL_TRACE);
 	CRLog::info("VRPG::initialize()");
 
-	_font = Font::create("res/arial-distance.gpb");
+	//_font = Font::create("res/arial-distance.gpb");
+	_font = Font::create("res/arial.gpb");
 
 	_material = createMaterialBlocks();
 
@@ -672,15 +697,6 @@ bool VRPG::drawScene(Node* node)
 
     return true;
 }
-
-static const char * dir_names[] = {
-	"NORTH",
-	"SOUTH",
-	"WEST",
-	"EAST",
-	"UP",
-	"DOWN",
-};
 
 void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 {
