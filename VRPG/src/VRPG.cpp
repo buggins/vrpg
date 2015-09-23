@@ -14,6 +14,8 @@ static const char * dir_names[] = {
 	"DOWN",
 };
 
+static bool HIGHLIGHT_GRID = true;
+static bool FLY_MODE = false;
 
 // Declare our game instance
 VRPG game;
@@ -142,7 +144,6 @@ static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0,
 	}
 }
 
-static bool HIGHLIGHT_GRID = true;
 
 class MeshVisitor : public CellVisitor {
 	FloatArray vertices;
@@ -448,11 +449,15 @@ void VRPG::initWorld() {
 void VRPG::drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps)
 {
 	char buffer[64];
-	sprintf(buffer, "%s  x: %d z: %d  h:%d   %ufps", 
+	sprintf(buffer, "%s  x:%d z:%d [%d,%d]  h:%d  (F)ly:%s (G)rid:%s  %ufps", 
 		dir_names[_world->getCamPosition().direction.dir],
 		_world->getCamPosition().pos.x,
 		_world->getCamPosition().pos.z, 
+		_world->getCamPosition().pos.x / 8,
+		_world->getCamPosition().pos.z / 8,
 		_world->getCamPosition().pos.y,
+		HIGHLIGHT_GRID ? "on" : "off",
+		FLY_MODE ? "on" : "off",
 		fps);
 	font->start();
 	font->drawText(buffer, x, y, color, font->getSize() * 2);
@@ -612,7 +617,7 @@ void VRPG::render(float elapsedTime)
     clear(CLEAR_COLOR_DEPTH, Vector4::zero(), 1.0f, 0);
 
 	//setViewport(Rectangle(getWidth() / 8, getHeight() / 5, getWidth() * 6 / 8, getHeight() * 6 / 8));
-	setViewport(Rectangle(0, getHeight() / 5, getWidth(), getHeight()));
+	setViewport(Rectangle(0, getHeight() / 10, getWidth(), getHeight()));
 
 	_cameraNode->setRotation(Vector3(1, 0, 0), 0);
 	_lightNode->setRotation(Vector3(1, 0, 0), 0);
@@ -682,7 +687,7 @@ void VRPG::render(float elapsedTime)
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &VRPG::drawScene);
 
-	setViewport(Rectangle(0, 0, getWidth(), getHeight() / 5));
+	setViewport(Rectangle(0, 0, getWidth(), getHeight() / 10));
 
 
 	drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 5, getFrameRate());
@@ -696,6 +701,19 @@ bool VRPG::drawScene(Node* node)
         drawable->draw(_wireframe);
 
     return true;
+}
+
+void VRPG::correctY() {
+	Vector3d & pos = _world->getCamPosition().pos;
+	if (_world->canPass(pos - Vector3d(2, 3, 2), Vector3d(5, 4, 5))) {
+		// down
+		while (_world->canPass(pos - Vector3d(2, 4, 2), Vector3d(5, 4, 5)))
+			pos.y--;
+	} else {
+		// up
+		while (!_world->canPass(pos - Vector3d(2, 3, 2), Vector3d(5, 4, 5)))
+			pos.y++;
+	}
 }
 
 void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
@@ -732,7 +750,15 @@ void VRPG::keyEvent(Keyboard::KeyEvent evt, int key)
 		case Keyboard::KEY_C:
 			pos->pos += pos->direction.up;
 			break;
+		case Keyboard::KEY_G:
+			HIGHLIGHT_GRID = !HIGHLIGHT_GRID;
+			break;
+		case Keyboard::KEY_F:
+			FLY_MODE = !FLY_MODE;
+			break;
 		}
+		if (!FLY_MODE)
+			correctY();
 		CRLog::trace("Position: %d,%d,%d direction: %s", pos->pos.x, pos->pos.y, pos->pos.z, dir_names[pos->direction.dir]);
 		//Matrix m1 = _camera->getViewMatrix();
 		//Matrix m2 = _camera->getProjectionMatrix();

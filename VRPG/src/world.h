@@ -169,6 +169,7 @@ public:
 	cell_t getCell(int x, int y, int z);
 	bool isOpaque(Vector3d v);
 	void setCell(int x, int y, int z, cell_t value);
+	bool canPass(Vector3d pos, Vector3d size);
 };
 
 class TerrainGen {

@@ -30,6 +30,8 @@ public:
 
 protected:
 
+	void correctY();
+
 	void drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps);
 
     /**

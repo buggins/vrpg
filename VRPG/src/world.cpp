@@ -29,6 +29,18 @@ cell_t World::getCell(int x, int y, int z) {
 		return NO_CELL;
 	return p->get(x & CHUNK_DX_MASK, y, z & CHUNK_DX_MASK);
 }
+
+bool World::canPass(Vector3d pos, Vector3d size) {
+	for (int x = 0; x <= size.x; x++)
+		for (int z = 0; z <= size.z; z++)
+			for (int y = 0; y < size.y; y++) {
+				Vector3d p(pos.x + x, pos.y + y, pos.z + z);
+				if (isOpaque(p))
+					return false;
+			}
+	return true;
+}
+
 void World::setCell(int x, int y, int z, cell_t value) {
 	//y += CHUNK_DY / 2;
 	int chunkx = x >> CHUNK_DX_SHIFT;
