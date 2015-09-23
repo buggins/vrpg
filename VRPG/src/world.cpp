@@ -4,6 +4,8 @@
 #include "logger.h"
 #include "blocks.h"
 
+bool HIGHLIGHT_GRID = true;
+
 bool World::isOpaque(Vector3d v) {
 	cell_t cell = getCell(v);
 	return BLOCK_TYPE_OPAQUE[cell] && cell != BOUND_SKY;

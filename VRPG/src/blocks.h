@@ -47,6 +47,9 @@ public:
 	virtual bool isVisible() {
 		return visibility != INVISIBLE;
 	}
+
+	void createFace(World * world, Position & camPosition, Vector3d pos, Dir face, FloatArray & vertices, IntArray & indexes);
+	void createFaces(World * world, Position & camPosition, Vector3d pos, int visibleFaces, FloatArray & vertices, IntArray & indexes);
 };
 
 
@@ -63,6 +66,8 @@ extern bool BLOCK_TYPE_VISIBLE[256];
 void registerBlockType(BlockDef * def);
 /// init block types array
 void initBlockTypes();
+
+#define VERTEX_COMPONENTS 11
 
 
 #endif // BLOCKS_H_INCLUDED

@@ -14,7 +14,6 @@ static const char * dir_names[] = {
 	"DOWN",
 };
 
-static bool HIGHLIGHT_GRID = true;
 static bool FLY_MODE = false;
 
 // Declare our game instance
@@ -28,131 +27,14 @@ VRPG::VRPG()
 
 Material * createMaterialBlocks();
 
-#define VERTEX_COMPONENTS 11
-
-static float face_vertices_north[VERTEX_COMPONENTS * 4] =
-{
-	-0.5, 0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	0.5, 0.5, -0.5,		0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 1.0,
-};
-
-static float face_vertices_south[VERTEX_COMPONENTS * 4] =
-{
-	-0.5, -0.5, 0.5,	0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	0.5, -0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, 0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, 0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		1.0, 1.0,
-};
-
-static float face_vertices_west[VERTEX_COMPONENTS * 4] =
-{
-	-0.5, -0.5, -0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	-0.5, -0.5, 0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, 0.5, -0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	-0.5, 0.5, 0.5,		-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0
-};
-
-static float face_vertices_east[VERTEX_COMPONENTS * 4] =
-{
-	0.5, -0.5, 0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	0.5, -0.5, -0.5,	1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	0.5, 0.5, 0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, 0.5, -0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
-};
-
-static float face_vertices_up[VERTEX_COMPONENTS * 4] =
-{
-	-0.5, 0.5, 0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	0.5, 0.5, 0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, 0.5, -0.5,	0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, 0.5, -0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
-};
-
-static float face_vertices_down[VERTEX_COMPONENTS * 4] =
-{
-	-0.5, -0.5, -0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
-	0.5, -0.5, -0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
-	-0.5, -0.5, 0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
-	0.5, -0.5, 0.5,		0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
-};
-
-static int face_indexes[6] =
-{
-    0, 1, 2, 2, 1, 3
-};
-
-static int face_indexes_back[6] =
-{
-    0, 2, 1, 2, 3, 1
-};
-
-static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0, int tileX, int tileY) {
-	for (int i = 0; i < 4; i++) {
-		float * srcvertex = src + i * VERTEX_COMPONENTS;
-		float * dstvertex = data + i * VERTEX_COMPONENTS;
-		for (int j = 0; j < 11; j++) {
-			float v = srcvertex[j];
-			switch (j) {
-			case 0: // x
-				v += x0;
-				break;
-			case 1: // y
-				v += y0;
-				break;
-			case 2: // z
-				v += z0;
-				break;
-			case 9: // tx.u
-				v = ((tileX + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DX;
-				break;
-			case 10: // tx.v
-				v = (BLOCK_TEXTURE_DY - (tileY + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DY;
-				break;
-			}
-			dstvertex[j] = v;
-		}
-	}
-}
-
-static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0, int tileIndex) {
-
-	int tileX = (tileIndex % BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
-	int tileY = (tileIndex / BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
-	// data is 11 comp * 4 vert floats
-	switch (face) {
-    default:
-	case NORTH:
-		fillFaceMesh(data, face_vertices_north, x0, y0, z0, tileX, tileY);
-		break;
-	case SOUTH:
-		fillFaceMesh(data, face_vertices_south, x0, y0, z0, tileX, tileY);
-		break;
-    case WEST:
-		fillFaceMesh(data, face_vertices_west, x0, y0, z0, tileX, tileY);
-		break;
-    case EAST:
-		fillFaceMesh(data, face_vertices_east, x0, y0, z0, tileX, tileY);
-		break;
-	case UP:
-		fillFaceMesh(data, face_vertices_up, x0, y0, z0, tileX, tileY);
-		break;
-	case DOWN:
-		fillFaceMesh(data, face_vertices_down, x0, y0, z0, tileX, tileY);
-		break;
-	}
-}
-
 
 class MeshVisitor : public CellVisitor {
 	FloatArray vertices;
 	IntArray indexes;
-	int faceCount;
 	FILE * log;
 	lUInt64 startTime;
 public:
-	MeshVisitor() : faceCount(0), log(NULL) {
+	MeshVisitor() : log(NULL) {
 		log = fopen("faces.log", "wt");
 		startTime = GetCurrentTimeMillis();
 	}
@@ -165,40 +47,14 @@ public:
 	virtual void newDirection(Position & camPosition) {
 		//fprintf(log, "Cam position : %d,%d,%d \t dir=%d\n", camPosition.pos.x, camPosition.pos.y, camPosition.pos.z, camPosition.direction.dir);
 	}
-	virtual void visitFace(World * world, Position & camPosition, Vector3d pos, cell_t cell, Dir face) {
-		//fprintf(log, "face %d: %d,%d,%d \t %d \t %d\n", faceCount, pos.x, pos.y, pos.z, cell, face);
-		int v0 = faceCount * 4;
-		faceCount++;
-		float * vptr = vertices.append(0.0f, 11 * 4);
-		int * iptr = indexes.append(0, 6);
-		BlockDef * def = BLOCK_DEFS[cell];
-		int texIndex = def->txIndex;
-		createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, texIndex);
-        for (int i = 0; i < 6; i++)
-            iptr[i] = v0 + face_indexes[i];
-		if (HIGHLIGHT_GRID && ((pos.x & 7) == 0 || (pos.z & 7) == 0)) {
-			for (int i = 0; i < 4; i++) {
-				vptr[11 * i + 6 + 0] = 1.4f;
-				vptr[11 * i + 6 + 1] = 1.4f;
-				vptr[11 * i + 6 + 2] = 1.4f;
-			}
-		}
-//        float vbuf[8*4];
-//        int ibuf[6];
-//        createFaceMesh(vbuf, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
-//        for (int i = 0; i < 6; i++)
-//            ibuf[i] = v0 + face_indexes[i];
-	}
 	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) {
-		//visibleFaces = 63;
-		for (int i = 0; i < 6; i++)
-			if (visibleFaces & (1<<i))
-				visitFace(world, camPosition, pos, cell, (Dir)i);
+		BlockDef * def = BLOCK_DEFS[cell];
+		def->createFaces(world, camPosition, pos, visibleFaces, vertices, indexes);
 	}
 
 	Mesh* createMesh() {
-		unsigned int vertexCount = faceCount * 4;
-		unsigned int indexCount = faceCount * 6;
+		unsigned int vertexCount = vertices.length() / VERTEX_COMPONENTS;
+		unsigned int indexCount = indexes.length();
 		VertexFormat::Element elements[] =
 		{
 			VertexFormat::Element(VertexFormat::POSITION, 3),
@@ -448,7 +304,7 @@ void VRPG::initWorld() {
 
 void VRPG::drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsigned int y, unsigned int fps)
 {
-	char buffer[64];
+	char buffer[128];
 	sprintf(buffer, "%s  x:%d z:%d [%d,%d]  h:%d  (F)ly:%s (G)rid:%s  %ufps", 
 		dir_names[_world->getCamPosition().direction.dir],
 		_world->getCamPosition().pos.x,

@@ -16,6 +16,8 @@ const int MAX_VIEW_DISTANCE = (1 << MAX_VIEW_DISTANCE_BITS);
 #define CHUNK_DY (1<<CHUNK_DY_SHIFT)
 #define CHUNK_DY_MASK (CHUNK_DY - 1)
 
+extern bool HIGHLIGHT_GRID;
+
 // Layer is 256x16x16 CHUNK_DY layers = CHUNK_DY * (CHUNK_DX_SHIFT x CHUNK_DX_SHIFT) cells
 struct ChunkLayer {
 private:

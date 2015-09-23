@@ -1,5 +1,6 @@
 #include "blocks.h"
 #include <stdio.h>
+#include "world.h"
 
 
 BlockDef * BLOCK_DEFS[256];
@@ -56,4 +57,142 @@ void initBlockTypes() {
 			registerBlockType(new BlockDef(i, strdup(buf), INVISIBLE, 0));
 		}
 	}
+}
+
+
+static float face_vertices_north[VERTEX_COMPONENTS * 4] =
+{
+	-0.5, 0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, 0.5, -0.5,		0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, -0.5, -0.5,	0.0, 0.0, -1.0,		1.0, 1.0, 1.0,		1.0, 1.0,
+};
+
+static float face_vertices_south[VERTEX_COMPONENTS * 4] =
+{
+	-0.5, -0.5, 0.5,	0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, -0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, 0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, 0.5, 0.5,		0.0, 0.0, 1.0,		1.0, 1.0, 1.0,		1.0, 1.0,
+};
+
+static float face_vertices_west[VERTEX_COMPONENTS * 4] =
+{
+	-0.5, -0.5, -0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	-0.5, -0.5, 0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, 0.5, -0.5,	-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	-0.5, 0.5, 0.5,		-1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0
+};
+
+static float face_vertices_east[VERTEX_COMPONENTS * 4] =
+{
+	0.5, -0.5, 0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, -0.5, -0.5,	1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	0.5, 0.5, 0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, 0.5, -0.5,		1.0, 0.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
+};
+
+static float face_vertices_up[VERTEX_COMPONENTS * 4] =
+{
+	-0.5, 0.5, 0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, 0.5, 0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, 0.5, -0.5,	0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, 0.5, -0.5,		0.0, 1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
+};
+
+static float face_vertices_down[VERTEX_COMPONENTS * 4] =
+{
+	-0.5, -0.5, -0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 0.0,
+	0.5, -0.5, -0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 0.0,
+	-0.5, -0.5, 0.5,	0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		0.0, 1.0,
+	0.5, -0.5, 0.5,		0.0, -1.0, 0.0,		1.0, 1.0, 1.0,		1.0, 1.0,
+};
+
+static int face_indexes[6] =
+{
+    0, 1, 2, 2, 1, 3
+};
+
+static int face_indexes_back[6] =
+{
+    0, 2, 1, 2, 3, 1
+};
+
+static void fillFaceMesh(float * data, float * src, float x0, float y0, float z0, int tileX, int tileY) {
+	for (int i = 0; i < 4; i++) {
+		float * srcvertex = src + i * VERTEX_COMPONENTS;
+		float * dstvertex = data + i * VERTEX_COMPONENTS;
+		for (int j = 0; j < 11; j++) {
+			float v = srcvertex[j];
+			switch (j) {
+			case 0: // x
+				v += x0;
+				break;
+			case 1: // y
+				v += y0;
+				break;
+			case 2: // z
+				v += z0;
+				break;
+			case 9: // tx.u
+				v = ((tileX + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DX;
+				break;
+			case 10: // tx.v
+				v = (BLOCK_TEXTURE_DY - (tileY + v * BLOCK_SPRITE_SIZE)) / (float)BLOCK_TEXTURE_DY;
+				break;
+			}
+			dstvertex[j] = v;
+		}
+	}
+}
+
+static void createFaceMesh(float * data, Dir face, float x0, float y0, float z0, int tileIndex) {
+
+	int tileX = (tileIndex % BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
+	int tileY = (tileIndex / BLOCK_TEXTURE_SPRITES_PER_LINE) * BLOCK_SPRITE_STEP + BLOCK_SPRITE_OFFSET;
+	// data is 11 comp * 4 vert floats
+	switch (face) {
+	default:
+	case NORTH:
+		fillFaceMesh(data, face_vertices_north, x0, y0, z0, tileX, tileY);
+		break;
+	case SOUTH:
+		fillFaceMesh(data, face_vertices_south, x0, y0, z0, tileX, tileY);
+		break;
+	case WEST:
+		fillFaceMesh(data, face_vertices_west, x0, y0, z0, tileX, tileY);
+		break;
+	case EAST:
+		fillFaceMesh(data, face_vertices_east, x0, y0, z0, tileX, tileY);
+		break;
+	case UP:
+		fillFaceMesh(data, face_vertices_up, x0, y0, z0, tileX, tileY);
+		break;
+	case DOWN:
+		fillFaceMesh(data, face_vertices_down, x0, y0, z0, tileX, tileY);
+		break;
+	}
+}
+
+
+void BlockDef::createFace(World * world, Position & camPosition, Vector3d pos, Dir face, FloatArray & vertices, IntArray & indexes) {
+	int v0 = vertices.length() / VERTEX_COMPONENTS;
+	float * vptr = vertices.append(0.0f, VERTEX_COMPONENTS * 4);
+	int * iptr = indexes.append(0, 6);
+	createFaceMesh(vptr, face, pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f, txIndex);
+	for (int i = 0; i < 6; i++)
+		iptr[i] = v0 + face_indexes[i];
+	if (HIGHLIGHT_GRID && ((pos.x & 7) == 0 || (pos.z & 7) == 0)) {
+		for (int i = 0; i < 4; i++) {
+			vptr[11 * i + 6 + 0] = 1.4f;
+			vptr[11 * i + 6 + 1] = 1.4f;
+			vptr[11 * i + 6 + 2] = 1.4f;
+		}
+	}
+}
+
+void BlockDef::createFaces(World * world, Position & camPosition, Vector3d pos, int visibleFaces, FloatArray & vertices, IntArray & indexes) {
+	for (int i = 0; i < 6; i++)
+		if (visibleFaces & (1 << i))
+			createFace(world, camPosition, pos, (Dir)i, vertices, indexes);
 }
