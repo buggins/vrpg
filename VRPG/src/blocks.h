@@ -48,8 +48,14 @@ public:
 		return visibility != INVISIBLE;
 	}
 
-	void createFace(World * world, Position & camPosition, Vector3d pos, Dir face, FloatArray & vertices, IntArray & indexes);
-	void createFaces(World * world, Position & camPosition, Vector3d pos, int visibleFaces, FloatArray & vertices, IntArray & indexes);
+	virtual bool terrainSmoothing() {
+		return false;
+	}
+
+	/// create cube face
+	virtual void createFace(World * world, Position & camPosition, Vector3d pos, Dir face, FloatArray & vertices, IntArray & indexes);
+	/// create faces
+	virtual void createFaces(World * world, Position & camPosition, Vector3d pos, int visibleFaces, FloatArray & vertices, IntArray & indexes);
 };
 
 
@@ -61,6 +67,8 @@ extern bool BLOCK_TYPE_CAN_PASS[256];
 extern bool BLOCK_TYPE_OPAQUE[256];
 // faster check for block->isVisible()
 extern bool BLOCK_TYPE_VISIBLE[256];
+// faster check for block->isVisible()
+extern bool BLOCK_TERRAIN_SMOOTHING[256];
 
 /// registers new block type
 void registerBlockType(BlockDef * def);

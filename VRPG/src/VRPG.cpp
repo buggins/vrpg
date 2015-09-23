@@ -213,13 +213,19 @@ void VRPG::initWorld() {
 	for (int x = 0; x < terrSize; x++) {
 		for (int z = 0; z < terrSize; z++) {
 			int h = terr.get(x, z);
-			cell_t cell = 3;
-			if (h < CHUNK_DY / 4)
-				cell = 4;
+			cell_t cell = 100;
+			if (h < CHUNK_DY / 10)
+				cell = 100;
+			else if (h < CHUNK_DY / 5)
+				cell = 101;
+			else if (h < CHUNK_DY / 4)
+				cell = 102;
 			else if (h < CHUNK_DY / 3)
-				cell = 5;
+				cell = 103;
 			else if (h < CHUNK_DY / 2)
-				cell = 6;
+				cell = 104;
+			else
+				cell = 105;
 			for (int y = 0; y < h; y++) {
 				world->setCell(x - terrSize / 2, y, z - terrSize / 2, cell);
 			}
@@ -308,7 +314,7 @@ void VRPG::drawFrameRate(Font* font, const Vector4& color, unsigned int x, unsig
 	sprintf(buffer, "%s  x:%d z:%d [%d,%d]  h:%d  (F)ly:%s (G)rid:%s  %ufps", 
 		dir_names[_world->getCamPosition().direction.dir],
 		_world->getCamPosition().pos.x,
-		_world->getCamPosition().pos.z, 
+		_world->getCamPosition().pos.z,
 		_world->getCamPosition().pos.x / 8,
 		_world->getCamPosition().pos.z / 8,
 		_world->getCamPosition().pos.y,

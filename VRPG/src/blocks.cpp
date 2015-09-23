@@ -7,6 +7,7 @@ BlockDef * BLOCK_DEFS[256];
 bool BLOCK_TYPE_CAN_PASS[256];
 bool BLOCK_TYPE_OPAQUE[256];
 bool BLOCK_TYPE_VISIBLE[256];
+bool BLOCK_TERRAIN_SMOOTHING[256];
 
 /// registers new block type
 void registerBlockType(BlockDef * def) {
@@ -20,33 +21,8 @@ void registerBlockType(BlockDef * def) {
 	BLOCK_TYPE_CAN_PASS[def->id] = def->canPass();
 	BLOCK_TYPE_OPAQUE[def->id] = def->isOpaque();
 	BLOCK_TYPE_VISIBLE[def->id] = def->isVisible();
+	BLOCK_TERRAIN_SMOOTHING[def->id] = def->terrainSmoothing();
 }
-
-
-struct BlockTypeInitializer {
-	BlockTypeInitializer() {
-		for (int i = 0; i < 256; i++) {
-			BLOCK_DEFS[i] = NULL;
-			BLOCK_TYPE_CAN_PASS[i] = true;
-		}
-		// empty cell
-		registerBlockType(new BlockDef(0, "empty", INVISIBLE, 0));
-		// standard block types
-		registerBlockType(new BlockDef(1, "gray_brick", OPAQUE, 0));
-		registerBlockType(new BlockDef(2, "brick", OPAQUE, 1));
-		registerBlockType(new BlockDef(3, "bedrock", OPAQUE, 2));
-		registerBlockType(new BlockDef(4, "clay", OPAQUE, 3));
-		registerBlockType(new BlockDef(5, "cobblestone", OPAQUE, 4));
-		registerBlockType(new BlockDef(6, "gravel", OPAQUE, 5));
-		registerBlockType(new BlockDef(7, "red_sand", OPAQUE, 6));
-		registerBlockType(new BlockDef(8, "sand", OPAQUE, 7));
-
-		registerBlockType(new BlockDef(50, "box", HALF_OPAQUE, 50));
-	}
-};
-
-// for static initialization
-BlockTypeInitializer blockTypeInitializer;
 
 void initBlockTypes() {
 	// fill non-registered entries
@@ -196,3 +172,64 @@ void BlockDef::createFaces(World * world, Position & camPosition, Vector3d pos, 
 		if (visibleFaces & (1 << i))
 			createFace(world, camPosition, pos, (Dir)i, vertices, indexes);
 }
+
+static VolumeData nearVolume(1);
+
+class TerrainBlock : public BlockDef {
+public:
+	TerrainBlock(cell_t blockId, const char * blockName, int tx) : BlockDef(blockId, blockName, OPAQUE, tx) {
+
+	}
+	virtual bool terrainSmoothing() {
+		return true;
+	}
+	virtual void createFaces(World * world, Position & camPosition, Vector3d pos, int visibleFaces, FloatArray & vertices, IntArray & indexes) {
+		world->getCellsNear(pos, nearVolume);
+		bool emptyAbove = BLOCK_TYPE_CAN_PASS[nearVolume.get(Vector3d(0, 1, 0))];
+		bool sameBlockBelow = nearVolume.get(Vector3d(0, -1, 0)) == id;
+		bool sameBlockNorth = nearVolume.get(Vector3d(0, 0, -1)) == id;
+		bool sameBlockSouth = nearVolume.get(Vector3d(0, 0, 1)) == id;
+		bool sameBlockWest = nearVolume.get(Vector3d(-1, 0, 0)) == id;
+		bool sameBlockEast = nearVolume.get(Vector3d(1, 0, 0)) == id;
+		bool emptyBlockNorth = BLOCK_TYPE_CAN_PASS[nearVolume.get(Vector3d(0, 0, -1))];
+		bool emptyBlockSouth = BLOCK_TYPE_CAN_PASS[nearVolume.get(Vector3d(0, 0, 1))];
+		bool emptyBlockWest = BLOCK_TYPE_CAN_PASS[nearVolume.get(Vector3d(-1, 0, 0))];
+		bool emptyBlockEast = BLOCK_TYPE_CAN_PASS[nearVolume.get(Vector3d(1, 0, 0))];
+		BlockDef::createFaces(world, camPosition, pos, visibleFaces, vertices, indexes);
+	}
+};
+
+
+struct BlockTypeInitializer {
+	BlockTypeInitializer() {
+		for (int i = 0; i < 256; i++) {
+			BLOCK_DEFS[i] = NULL;
+			BLOCK_TYPE_CAN_PASS[i] = true;
+		}
+		// empty cell
+		registerBlockType(new BlockDef(0, "empty", INVISIBLE, 0));
+		// standard block types
+		registerBlockType(new BlockDef(1, "gray_brick", OPAQUE, 0));
+		registerBlockType(new BlockDef(2, "brick", OPAQUE, 1));
+		registerBlockType(new BlockDef(3, "bedrock", OPAQUE, 2));
+		registerBlockType(new BlockDef(4, "clay", OPAQUE, 3));
+		registerBlockType(new BlockDef(5, "cobblestone", OPAQUE, 4));
+		registerBlockType(new BlockDef(6, "gravel", OPAQUE, 5));
+		registerBlockType(new BlockDef(7, "red_sand", OPAQUE, 6));
+		registerBlockType(new BlockDef(8, "sand", OPAQUE, 7));
+
+		registerBlockType(new BlockDef(50, "box", HALF_OPAQUE, 50));
+
+		registerBlockType(new TerrainBlock(100, "terrain_bedrock", 2));
+		registerBlockType(new TerrainBlock(101, "terrain_clay", 3));
+		registerBlockType(new TerrainBlock(102, "terrain_cobblestone", 4));
+		registerBlockType(new TerrainBlock(103, "terrain_gravel", 5));
+		registerBlockType(new TerrainBlock(104, "terrain_red_sand", 6));
+		registerBlockType(new TerrainBlock(105, "terrain_sand", 7));
+	}
+};
+
+
+// for static initialization
+BlockTypeInitializer blockTypeInitializer;
+
