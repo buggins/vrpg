@@ -682,6 +682,25 @@ int myAbs(int d) {
 	return d < 0 ? -d : d;
 }
 
+int diamondIndex(Vector3d v, int dist) {
+	if (v.z == 0) {
+		if (v.y >= 0)
+			return v.x + dist;
+		return v.x + dist + dist;
+	} else if (v.y == 0) {
+		int d4 = dist << 2; // dist * 4
+		if (v.z >= 0)
+			return v.x + dist + d4 - 1;
+		return v.x + dist;
+
+	} else if (v.x == 0) {
+
+	} else {
+
+	}
+	return v.x + dist;
+}
+
 /// iterator is based on Terasology implementation
 /// https://github.com/MovingBlocks/Terasology/blob/develop/engine/src/main/java/org/terasology/math/Diamond3iIterator.java
 class DiamondIterator {
