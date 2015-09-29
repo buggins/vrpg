@@ -677,3 +677,59 @@ void TerrainGen::square(int x, int y, int size, int offset) {
 	int avg = (get(x - size, y - size) + get(x + size, y - size) + get(x - size, y + size) + get(x - size, y - size)) >> 2;
 	set(x, y, avg + offset);
 }
+
+int myAbs(int d) {
+	return d < 0 ? -d : d;
+}
+
+/// iterator is based on Terasology implementation
+/// https://github.com/MovingBlocks/Terasology/blob/develop/engine/src/main/java/org/terasology/math/Diamond3iIterator.java
+class DiamondIterator {
+private:
+	Vector3d origin;
+	int maxDistance;
+	int x;
+	int y;
+	int z;
+	int level;
+public:
+	DiamondIterator(Vector3d orig, int maxDist, int startDistance) : origin(orig), maxDistance(maxDist + 1), x(0), y(0), z(0) {
+		level = startDistance + 1;
+		x = -level;
+	}
+
+	bool hasNext() {
+		return level < maxDistance;
+	}
+
+	Vector3d next() {
+		Vector3d result(origin.x + x, origin.y + y, origin.z + z);
+		if (z < 0) {
+			z *= -1;
+		}
+		else if (y < 0) {
+			y *= -1;
+			z = -(level - myAbs(x) - myAbs(y));
+		}
+		else {
+			y = -y + 1;
+			if (y > 0) {
+				if (++x <= level) {
+					y = myAbs(x) - level;
+					z = 0;
+				}
+				else {
+					level++;
+					x = -level;
+					y = 0;
+					z = 0;
+				}
+			}
+			else {
+				z = -(level - myAbs(x) - myAbs(y));
+			}
+		}
+
+		return result;
+	}
+};
