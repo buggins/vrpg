@@ -682,23 +682,45 @@ int myAbs(int d) {
 	return d < 0 ? -d : d;
 }
 
-int diamondIndex(Vector3d v, int dist) {
-	if (v.z == 0) {
-		if (v.y >= 0)
-			return v.x + dist;
-		return v.x + dist + dist;
-	} else if (v.y == 0) {
-		int d4 = dist << 2; // dist * 4
-		if (v.z >= 0)
-			return v.x + dist + d4 - 1;
-		return v.x + dist;
+int bitsFor(int n) {
+	int res;
+	for (res = 0; n > 0; res++)
+		n >>= 1;
+	return res;
+}
 
-	} else if (v.x == 0) {
-
-	} else {
-
+/// vector to index
+int diamondIndex(Vector3d v, int distBits) {
+	int m0 = 1 << distBits;
+	int x = v.x + m0;
+	int y = v.z + m0;
+	if (v.y < 0) {
+		// inverse index for lower half
+		m0--;
+		x ^= m0;
+		y ^= m0;
 	}
-	return v.x + dist;
+	int index = x + (y << (distBits + 1));
+	return index;
+}
+
+/// index to vector
+Vector3d diamondVector(int index, int distBits, int dist) {
+	Vector3d v;
+	int xx = index & ((1 << (distBits + 1)) - 1);
+	int yy = index >> (distBits + 1);
+	int m0 = 1 << distBits;
+	int x = xx - m0;
+	int y = yy - m0;
+	int m0dist = myAbs(x) + myAbs(y);
+	if (m0dist > dist) {
+		// bottom half
+	} else {
+		v.y = dist - m0dist;
+	}
+	v.x = x;
+	v.z = y;
+	return v;
 }
 
 /// iterator is based on Terasology implementation
