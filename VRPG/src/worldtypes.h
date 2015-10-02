@@ -361,6 +361,7 @@ public:
 
 typedef Array<float> FloatArray;
 typedef Array<int> IntArray;
+typedef Array<cell_t> CellArray;
 typedef Array<Vector2d> Vector2dArray;
 typedef Array<Vector3d> Vector3dArray;
 

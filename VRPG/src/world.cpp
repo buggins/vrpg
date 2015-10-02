@@ -689,6 +689,74 @@ int bitsFor(int n) {
 	return res;
 }
 
+/// returns 0 for 0, 1 for negatives, 2 for positives
+int mySign(int n) {
+	if (n > 0)
+		return 2;
+	else if (n < 0)
+		return 1;
+	else
+		return 0;
+}
+
+static Vector3d DIRECTION_BY_SIGN_COMBINATION[27] = {
+	// x	y	 z
+	// 0	0	 0
+	Vector3d(0, 0, 0),
+	// <0	0	 0
+	Vector3d(-1, 0, 0),
+	// >0	0	 0
+	Vector3d(1, 0, 0),
+	// 0	<0	 0
+	Vector3d(0, -1, 0),
+	// <0	<0	 0
+	Vector3d(-1, -1, 0),
+	// >0	<0	 0
+	Vector3d(1, -1, 0),
+	// 0	>0	 0
+	Vector3d(0, 1, 0),
+	// <0	>0	 0
+	Vector3d(-1, 1, 0),
+	// >0	>0	 0
+	Vector3d(1, 1, 0),
+	// 0	0	 <0
+	Vector3d(0, 0, -1),
+	// <0	0	 <0
+	Vector3d(-1, 0, -1),
+	// >0	0	 <0
+	Vector3d(1, 0, -1),
+	// 0	<0	 <0
+	Vector3d(0, -1, -1),
+	// <0	<0	 <0
+	Vector3d(-1, -1, -1),
+	// >0	<0	 <0
+	Vector3d(1, -1, -1),
+	// 0	>0	 <0
+	Vector3d(0, 1, -1),
+	// <0	>0	 <0
+	Vector3d(-1, 1, -1),
+	// >0	>0	 <0
+	Vector3d(1, 1, -1),
+	// 0	0	 >0
+	Vector3d(0, 0, 1),
+	// <0	0	 >0
+	Vector3d(-1, 0, 1),
+	// >0	0	 >0
+	Vector3d(1, 0, 1),
+	// 0	<0	 >0
+	Vector3d(0, -1, 1),
+	// <0	<0	 >0
+	Vector3d(-1, -1, 1),
+	// >0	<0	 >0
+	Vector3d(1, -1, 1),
+	// 0	>0	 >0
+	Vector3d(0, 1, 1),
+	// <0	>0	 >0
+	Vector3d(-1, 1, 1),
+	// >0	>0	 >0
+	Vector3d(1, 1, 1),
+};
+
 /// vector to index
 int diamondIndex(Vector3d v, int distBits) {
 	int m0 = 1 << distBits;
@@ -710,18 +778,64 @@ Vector3d diamondVector(int index, int distBits, int dist) {
 	int xx = index & ((1 << (distBits + 1)) - 1);
 	int yy = index >> (distBits + 1);
 	int m0 = 1 << distBits;
-	int x = xx - m0;
-	int y = yy - m0;
-	int m0dist = myAbs(x) + myAbs(y);
+	v.x = xx - m0;
+	v.y = yy - m0;
+	int m0dist = myAbs(v.x) + myAbs(v.y);
 	if (m0dist > dist) {
 		// bottom half
+		int mask = m0 - 1;
+		v.x = (xx ^ mask) - m0;
+		v.y = (yy ^ mask) - m0;
+		m0dist = myAbs(v.x) + myAbs(v.y);
+		v.y = -(dist - m0dist);
 	} else {
+		// top half
 		v.y = dist - m0dist;
 	}
-	v.x = x;
-	v.z = y;
 	return v;
 }
+
+struct DiamondVisitor {
+	int maxDist;
+	int maxDistBits;
+	World * world;
+	Position * position;
+	CellVisitor * visitor;
+	CellArray visited;
+	Vector3dArray oldcells;
+	Vector3dArray newcells;
+	unsigned char visitedOccupied;
+	unsigned char visitedEmpty;
+	DiamondVisitor() {}
+	void init(World * w, Position * pos, CellVisitor * v) {
+		world = w;
+		position = pos;
+		visitor = v;
+	}
+	void visitAll(int maxDistance) {
+		maxDist = maxDistance;
+		maxDistBits = bitsFor(maxDist);
+		int sz = (1 << maxDistBits) * (1 << maxDistBits);
+		visited.append(0, sz);
+		oldcells.reserve(maxDist * 4 * 4);
+		newcells.reserve(maxDist * 4 * 4);
+		oldcells.append(Vector3d(0, 0, 0));
+		visitedOccupied = 0;
+		visitedEmpty = 1;
+		for (int dist = 0; dist < maxDistance; dist++) {
+			// for each distance
+			if (oldcells.length() == 0) // no cells to pass through
+				break;
+			newcells.clear();
+			visitedOccupied += 2;
+			visitedEmpty += 2;
+			for (int i = 0; i < oldcells.length(); i++) {
+				Vector3d pt = oldcells[i];
+			}
+			newcells.swap(oldcells);
+		}
+	}
+};
 
 /// iterator is based on Terasology implementation
 /// https://github.com/MovingBlocks/Terasology/blob/develop/engine/src/main/java/org/terasology/math/Diamond3iIterator.java
