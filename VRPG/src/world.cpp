@@ -401,11 +401,15 @@ void VolumeVisitor::visitAll() {
 
 
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
+#if USE_DIAMOND_VISITOR==1
+	visitorHelper.init(this, &position, visitor);
+	visitorHelper.visitAll(MAX_VIEW_DISTANCE);
+#else
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
-
 	visitorHelper.init(this, &position, &volumeSnapshot, visitor);
 	visitorHelper.visitAll();
+#endif
 }
 
 void disposeChunkStripe(ChunkStripe * p) {
@@ -413,11 +417,13 @@ void disposeChunkStripe(ChunkStripe * p) {
 }
 
 void World::updateVolumeSnapshot() {
+#if USE_DIAMOND_VISITOR!=1
 	if (!volumeSnapshotInvalid && volumePos == camPosition.pos)
 		return;
 	volumePos = camPosition.pos;
 	getCellsNear(camPosition.pos, volumeSnapshot);
 	volumeSnapshotInvalid = false;
+#endif
 }
 
 void Chunk::getCells(Vector3d srcpos, Vector3d dstpos, Vector3d size, VolumeData & buf) {
@@ -692,70 +698,12 @@ int bitsFor(int n) {
 /// returns 0 for 0, 1 for negatives, 2 for positives
 int mySign(int n) {
 	if (n > 0)
-		return 2;
-	else if (n < 0)
 		return 1;
+	else if (n < 0)
+		return -1;
 	else
 		return 0;
 }
-
-static Vector3d DIRECTION_BY_SIGN_COMBINATION[27] = {
-	// x	y	 z
-	// 0	0	 0
-	Vector3d(0, 0, 0),
-	// <0	0	 0
-	Vector3d(-1, 0, 0),
-	// >0	0	 0
-	Vector3d(1, 0, 0),
-	// 0	<0	 0
-	Vector3d(0, -1, 0),
-	// <0	<0	 0
-	Vector3d(-1, -1, 0),
-	// >0	<0	 0
-	Vector3d(1, -1, 0),
-	// 0	>0	 0
-	Vector3d(0, 1, 0),
-	// <0	>0	 0
-	Vector3d(-1, 1, 0),
-	// >0	>0	 0
-	Vector3d(1, 1, 0),
-	// 0	0	 <0
-	Vector3d(0, 0, -1),
-	// <0	0	 <0
-	Vector3d(-1, 0, -1),
-	// >0	0	 <0
-	Vector3d(1, 0, -1),
-	// 0	<0	 <0
-	Vector3d(0, -1, -1),
-	// <0	<0	 <0
-	Vector3d(-1, -1, -1),
-	// >0	<0	 <0
-	Vector3d(1, -1, -1),
-	// 0	>0	 <0
-	Vector3d(0, 1, -1),
-	// <0	>0	 <0
-	Vector3d(-1, 1, -1),
-	// >0	>0	 <0
-	Vector3d(1, 1, -1),
-	// 0	0	 >0
-	Vector3d(0, 0, 1),
-	// <0	0	 >0
-	Vector3d(-1, 0, 1),
-	// >0	0	 >0
-	Vector3d(1, 0, 1),
-	// 0	<0	 >0
-	Vector3d(0, -1, 1),
-	// <0	<0	 >0
-	Vector3d(-1, -1, 1),
-	// >0	<0	 >0
-	Vector3d(1, -1, 1),
-	// 0	>0	 >0
-	Vector3d(0, 1, 1),
-	// <0	>0	 >0
-	Vector3d(-1, 1, 1),
-	// >0	>0	 >0
-	Vector3d(1, 1, 1),
-};
 
 /// vector to index
 int diamondIndex(Vector3d v, int distBits) {
@@ -773,6 +721,7 @@ int diamondIndex(Vector3d v, int distBits) {
 }
 
 /// index to vector
+#if 0
 Vector3d diamondVector(int index, int distBits, int dist) {
 	Vector3d v;
 	int xx = index & ((1 << (distBits + 1)) - 1);
@@ -794,48 +743,167 @@ Vector3d diamondVector(int index, int distBits, int dist) {
 	}
 	return v;
 }
+#endif
 
-struct DiamondVisitor {
-	int maxDist;
-	int maxDistBits;
-	World * world;
-	Position * position;
-	CellVisitor * visitor;
-	CellArray visited;
-	Vector3dArray oldcells;
-	Vector3dArray newcells;
-	unsigned char visitedOccupied;
-	unsigned char visitedEmpty;
-	DiamondVisitor() {}
-	void init(World * w, Position * pos, CellVisitor * v) {
-		world = w;
-		position = pos;
-		visitor = v;
+DiamondVisitor::DiamondVisitor() 
+{
+}
+
+void DiamondVisitor::init(World * w, Position * pos, CellVisitor * v) {
+	world = w;
+	position = pos;
+	visitor = v;
+	pos0 = position->pos;
+}
+void DiamondVisitor::visitCell(Vector3d v) {
+	//CRLog::trace("visitCell(%d %d %d) dist=%d", v.x, v.y, v.z, myAbs(v.x) + myAbs(v.y) + myAbs(v.z));
+
+	if (v * position->direction.forward < dist / 3)
+		return;
+
+	int m0 = 1 << maxDistBits;
+	int x = v.x + m0;
+	int y = v.z + m0;
+	if (v.y < 0) {
+		// inverse index for lower half
+		m0--;
+		x ^= m0;
+		y ^= m0;
 	}
-	void visitAll(int maxDistance) {
-		maxDist = maxDistance;
-		maxDistBits = bitsFor(maxDist);
-		int sz = (1 << maxDistBits) * (1 << maxDistBits);
-		visited.append(0, sz);
-		oldcells.reserve(maxDist * 4 * 4);
-		newcells.reserve(maxDist * 4 * 4);
-		oldcells.append(Vector3d(0, 0, 0));
-		visitedOccupied = 0;
-		visitedEmpty = 1;
-		for (int dist = 0; dist < maxDistance; dist++) {
-			// for each distance
-			if (oldcells.length() == 0) // no cells to pass through
-				break;
-			newcells.clear();
-			visitedOccupied += 2;
-			visitedEmpty += 2;
-			for (int i = 0; i < oldcells.length(); i++) {
-				Vector3d pt = oldcells[i];
+	int index = x + (y << (maxDistBits + 1));
+	//int index = diamondIndex(v, maxDistBits);
+	cell_t cell = visited[index];
+	if (cell == visitedOccupied || cell == visitedEmpty)
+		return;
+	// read cell from world
+	Vector3d pos = pos0 + v;
+	cell = world->getCell(pos);
+	if (BLOCK_TYPE_VISIBLE[cell]) {
+		int visibleFaces = 0;
+		if (v.y <= 0 && v * DIRECTION_VECTORS[DIR_UP] <= 0 &&
+			!world->isOpaque(pos.move(DIR_UP)))
+			visibleFaces |= MASK_UP;
+		if (v.y >= 0 && v * DIRECTION_VECTORS[DIR_DOWN] <= 0 &&
+			!world->isOpaque(pos.move(DIR_DOWN)))
+			visibleFaces |= MASK_DOWN;
+		if (v.x <= 0 && v * DIRECTION_VECTORS[DIR_EAST] <= 0 &&
+			!world->isOpaque(pos.move(DIR_EAST)))
+			visibleFaces |= MASK_EAST;
+		if (v.x >= 0 && v * DIRECTION_VECTORS[DIR_WEST] <= 0 &&
+			!world->isOpaque(pos.move(DIR_WEST)))
+			visibleFaces |= MASK_WEST;
+		if (v.z <= 0 && v * DIRECTION_VECTORS[DIR_SOUTH] <= 0 &&
+			!world->isOpaque(pos.move(DIR_SOUTH)))
+			visibleFaces |= MASK_SOUTH;
+		if (v.z >= 0 && v * DIRECTION_VECTORS[DIR_NORTH] <= 0 &&
+			!world->isOpaque(pos.move(DIR_NORTH)))
+			visibleFaces |= MASK_NORTH;
+		visitor->visit(world, *position, pos, cell, visibleFaces);
+	}
+	// mark as visited
+	cell = BLOCK_TYPE_CAN_PASS[cell] ? visitedEmpty : visitedOccupied;
+	visited[index] = cell;
+	if (cell == visitedEmpty)
+		newcells.append(v);
+}
+void DiamondVisitor::visitAll(int maxDistance) {
+	maxDist = maxDistance;
+	maxDistBits = bitsFor(maxDist);
+	int sz = ((1 << maxDistBits) * (1 << maxDistBits)) << 2;
+	visited.clear();
+	visited.append(0, sz);
+	oldcells.reserve(maxDist * 4 * 4);
+	newcells.reserve(maxDist * 4 * 4);
+
+	dist = 1;
+
+	visitedOccupied = 2;
+	visitedEmpty = 3;
+	oldcells.clear();
+	oldcells.append(Vector3d(0, 0, 0));
+
+	for (; dist < maxDistance; dist++) {
+		// for each distance
+		if (oldcells.length() == 0) // no cells to pass through
+			break;
+		newcells.clear();
+		visitedOccupied += 2;
+		visitedEmpty += 2;
+		for (int i = 0; i < oldcells.length(); i++) {
+			Vector3d pt = oldcells[i];
+			int sx = mySign(pt.x);
+			int sy = mySign(pt.y);
+			int sz = mySign(pt.z);
+			if (sx && sy && sz) {
+				// 1, 1, 1
+				visitCell(Vector3d(pt.x + sx, pt.y, pt.z));
+				visitCell(Vector3d(pt.x, pt.y + sy, pt.z));
+				visitCell(Vector3d(pt.x, pt.y, pt.z + sz));
+			} else {
+				// has 0 in one of coords
+				if (!sx) {
+					if (!sy) {
+						if (!sz) {
+							// 0, 0, 0
+							visitCell(Vector3d(pt.x + 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x - 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x, pt.y + 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y - 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y, pt.z + 1));
+							visitCell(Vector3d(pt.x, pt.y, pt.z - 1));
+						} else {
+							// 0, 0, 1
+							visitCell(Vector3d(pt.x, pt.y, pt.z + sz));
+							visitCell(Vector3d(pt.x + 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x - 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x, pt.y + 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y - 1, pt.z));
+						}
+					} else {
+						if (!sz) {
+							// 0, 1, 0
+							visitCell(Vector3d(pt.x, pt.y + sy, pt.z));
+							visitCell(Vector3d(pt.x + 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x - 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x, pt.y, pt.z + 1));
+							visitCell(Vector3d(pt.x, pt.y, pt.z - 1));
+						} else {
+							// 0, 1, 1
+							visitCell(Vector3d(pt.x, pt.y + sy, pt.z));
+							visitCell(Vector3d(pt.x, pt.y, pt.z + sz));
+							visitCell(Vector3d(pt.x + 1, pt.y, pt.z));
+							visitCell(Vector3d(pt.x - 1, pt.y, pt.z));
+						}
+					}
+				} else {
+					if (!sy) {
+						if (!sz) {
+							// 1, 0, 0
+							visitCell(Vector3d(pt.x + sx, pt.y, pt.z));
+							visitCell(Vector3d(pt.x, pt.y + 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y - 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y, pt.z + 1));
+							visitCell(Vector3d(pt.x, pt.y, pt.z - 1));
+						} else {
+							// 1, 0, 1
+							visitCell(Vector3d(pt.x + sx, pt.y, pt.z));
+							visitCell(Vector3d(pt.x, pt.y, pt.z + sz));
+							visitCell(Vector3d(pt.x, pt.y + 1, pt.z));
+							visitCell(Vector3d(pt.x, pt.y - 1, pt.z));
+						}
+					} else {
+						// 1, 1, 0
+						visitCell(Vector3d(pt.x + sx, pt.y, pt.z));
+						visitCell(Vector3d(pt.x, pt.y + sy, pt.z));
+						visitCell(Vector3d(pt.x, pt.y, pt.z + 1));
+						visitCell(Vector3d(pt.x, pt.y, pt.z - 1));
+					}
+				}
 			}
-			newcells.swap(oldcells);
 		}
+		newcells.swap(oldcells);
 	}
-};
+}
 
 /// iterator is based on Terasology implementation
 /// https://github.com/MovingBlocks/Terasology/blob/develop/engine/src/main/java/org/terasology/math/Diamond3iIterator.java

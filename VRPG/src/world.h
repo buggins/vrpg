@@ -142,6 +142,25 @@ public:
 	}
 };
 
+struct DiamondVisitor {
+	int maxDist;
+	int maxDistBits;
+	int dist;
+	World * world;
+	Position * position;
+	Vector3d pos0;
+	CellVisitor * visitor;
+	CellArray visited;
+	Vector3dArray oldcells;
+	Vector3dArray newcells;
+	unsigned char visitedOccupied;
+	unsigned char visitedEmpty;
+	DiamondVisitor();
+	void init(World * w, Position * pos, CellVisitor * v);
+	void visitCell(Vector3d v);
+	void visitAll(int maxDistance);
+};
+
 /// Voxel World
 class World {
 private:
@@ -151,12 +170,20 @@ private:
 	int lastChunkX;
 	int lastChunkZ;
 	Chunk * lastChunk;
+#if USE_DIAMOND_VISITOR==1
+	DiamondVisitor visitorHelper;
+#else
 	VolumeData volumeSnapshot;
 	Vector3d volumePos;
 	bool volumeSnapshotInvalid;
 	VolumeVisitor visitorHelper;
+#endif
 public:
-	World() : maxVisibleRange(MAX_VIEW_DISTANCE), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL), volumeSnapshot(MAX_VIEW_DISTANCE_BITS), volumeSnapshotInvalid(true) {
+	World() : maxVisibleRange(MAX_VIEW_DISTANCE), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL)
+#if USE_DIAMOND_VISITOR!=1
+		, volumeSnapshot(MAX_VIEW_DISTANCE_BITS), volumeSnapshotInvalid(true)
+#endif
+	{
 	}
 	~World() {
 
@@ -219,6 +246,7 @@ public:
 	/// ensure that data is in range [minvalue, maxvalue]
 	void limit(int minvalue, int maxvalue);
 };
+
 
 #define UNIT_TESTS 1
 void runWorldUnitTests();

@@ -728,6 +728,8 @@ public:
 	virtual void visit(World * world, Position & camPosition, Vector3d pos, cell_t cell, int visibleFaces) { }
 };
 
+#define USE_DIAMOND_VISITOR 1
+
 struct VolumeVisitor {
 	World * world;
 	VolumeData * volume;

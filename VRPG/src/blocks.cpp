@@ -33,6 +33,10 @@ void initBlockTypes() {
 			registerBlockType(new BlockDef(i, strdup(buf), INVISIBLE, 0));
 		}
 	}
+	BLOCK_TYPE_CAN_PASS[BOUND_SKY] = false;
+	BLOCK_TYPE_VISIBLE[BOUND_SKY] = false;
+	BLOCK_TYPE_CAN_PASS[BOUND_BOTTOM] = false;
+	BLOCK_TYPE_VISIBLE[BOUND_BOTTOM] = true;
 }
 
 
