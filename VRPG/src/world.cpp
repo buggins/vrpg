@@ -387,6 +387,13 @@ void VolumeVisitor::visitAll() {
 		for (int dir = 5; dir >= 0; dir--)
 			if (dir != oppdirection)
 				helpers[dir].nextDistance();
+		CRLog::trace("dist: %d cells: %d", distance, helpers[0].oldcells.length() 
+			+ helpers[1].oldcells.length()
+			+ helpers[2].oldcells.length()
+			+ helpers[3].oldcells.length()
+			+ helpers[4].oldcells.length()
+			+ helpers[5].oldcells.length()
+			);
 		for (int dir = 5; dir >= 0; dir--)
 			if (dir != oppdirection)
 				visitPlaneForward(startIndex, (DirEx)dir);
@@ -401,12 +408,20 @@ void VolumeVisitor::visitAll() {
 
 
 void World::visitVisibleCellsAllDirectionsFast(Position & position, CellVisitor * visitor) {
-#if USE_DIAMOND_VISITOR==1
-	visitorHelper.init(this, &position, visitor);
-	visitorHelper.visitAll(MAX_VIEW_DISTANCE);
-#else
+#if	USE_VOLUME_DATA == 1
 	volumeSnapshotInvalid = true;
 	updateVolumeSnapshot();
+#endif
+#if USE_DIAMOND_VISITOR==1
+	visitorHelper.init(this, &position, 
+#if	USE_VOLUME_DATA == 1
+		&volumeSnapshot, 
+#else
+		NULL,
+#endif
+		visitor);
+	visitorHelper.visitAll(MAX_VIEW_DISTANCE);
+#else
 	visitorHelper.init(this, &position, &volumeSnapshot, visitor);
 	visitorHelper.visitAll();
 #endif
@@ -417,7 +432,7 @@ void disposeChunkStripe(ChunkStripe * p) {
 }
 
 void World::updateVolumeSnapshot() {
-#if USE_DIAMOND_VISITOR!=1
+#if	USE_VOLUME_DATA == 1
 	if (!volumeSnapshotInvalid && volumePos == camPosition.pos)
 		return;
 	volumePos = camPosition.pos;
@@ -749,35 +764,51 @@ DiamondVisitor::DiamondVisitor()
 {
 }
 
-void DiamondVisitor::init(World * w, Position * pos, CellVisitor * v) {
+void DiamondVisitor::init(World * w, Position * pos, VolumeData * vol, CellVisitor * v) {
+	volume = vol;
 	world = w;
 	position = pos;
 	visitor = v;
 	pos0 = position->pos;
 }
-void DiamondVisitor::visitCell(Vector3d v) {
+
+void DiamondVisitor::visitCell(
+#if	USE_VOLUME_DATA != 1
+	Vector3d v
+#else
+	int index
+#endif
+	) {
 	//CRLog::trace("visitCell(%d %d %d) dist=%d", v.x, v.y, v.z, myAbs(v.x) + myAbs(v.y) + myAbs(v.z));
 
+#if	USE_VOLUME_DATA == 1
+	Vector3d v = volume->indexToPoint(index);
+	Vector3d pos = pos0 + v;
+	cell_t cell = volume->get(index);
+	if (cell >= VISITED_OCCUPIED)
+		return;
 	if (v * position->direction.forward < dist / 3)
 		return;
-
-	int m0 = 1 << maxDistBits;
-	int x = v.x + m0;
-	int y = v.z + m0;
+#else
+	//int occupied = visitedOccupied;
+	int index = (v.x + m0) + ((v.z + m0) << (maxDistBits + 1));
 	if (v.y < 0) {
 		// inverse index for lower half
-		m0--;
-		x ^= m0;
-		y ^= m0;
+		index ^= m0mask;
+		//m0--;
+		//x ^= m0;
+		//y ^= m0;
 	}
-	int index = x + (y << (maxDistBits + 1));
 	//int index = diamondIndex(v, maxDistBits);
-	cell_t cell = visited[index];
-	if (cell == visitedOccupied || cell == visitedEmpty)
+	if (visited_ptr[index] == visitedOccupied)// || cell == visitedEmpty)
 		return;
-	// read cell from world
+	if (v * position->direction.forward < dist / 3)
+		return;
 	Vector3d pos = pos0 + v;
-	cell = world->getCell(pos);
+	cell_t cell = world->getCell(pos);
+#endif
+
+	// read cell from world
 	if (BLOCK_TYPE_VISIBLE[cell]) {
 		int visibleFaces = 0;
 		if (v.y <= 0 && v * DIRECTION_VECTORS[DIR_UP] <= 0 &&
@@ -801,36 +832,65 @@ void DiamondVisitor::visitCell(Vector3d v) {
 		visitor->visit(world, *position, pos, cell, visibleFaces);
 	}
 	// mark as visited
-	cell = BLOCK_TYPE_CAN_PASS[cell] ? visitedEmpty : visitedOccupied;
-	visited[index] = cell;
-	if (cell == visitedEmpty)
+#if	USE_VOLUME_DATA == 1
+	cell = BLOCK_TYPE_CAN_PASS[cell] ? VISITED_CELL : VISITED_OCCUPIED;
+	volume->put(index, cell);
+	if (cell == VISITED_CELL)
+		newcells.append(index);
+#else
+	if (BLOCK_TYPE_CAN_PASS[cell])
 		newcells.append(v);
+	//cell = BLOCK_TYPE_CAN_PASS[cell] ? visitedEmpty : visitedOccupied;
+	visited_ptr[index] = visitedOccupied; // cell;
+#endif
 }
+
+
+
 void DiamondVisitor::visitAll(int maxDistance) {
 	maxDist = maxDistance;
 	maxDistBits = bitsFor(maxDist);
-	int sz = ((1 << maxDistBits) * (1 << maxDistBits)) << 2;
-	visited.clear();
-	visited.append(0, sz);
+
+	m0 = 1 << maxDistBits;
+	m0mask = (m0 - 1) + ((m0 - 1) << (maxDistBits + 1));
+
+	oldcells.clear();
+	newcells.clear();
 	oldcells.reserve(maxDist * 4 * 4);
 	newcells.reserve(maxDist * 4 * 4);
 
 	dist = 1;
 
+#if	USE_VOLUME_DATA == 1
+	oldcells.append(volume->getIndex(Vector3d(0, 0, 0)));
+#else
+	int sz = ((1 << maxDistBits) * (1 << maxDistBits)) << 2;
+	visited.clear();
+	visited.append(0, sz);
+	visited_ptr = visited.ptr();
 	visitedOccupied = 2;
 	visitedEmpty = 3;
 	oldcells.clear();
 	oldcells.append(Vector3d(0, 0, 0));
+#endif
 
 	for (; dist < maxDistance; dist++) {
 		// for each distance
 		if (oldcells.length() == 0) // no cells to pass through
 			break;
 		newcells.clear();
+#if	USE_VOLUME_DATA != 1
 		visitedOccupied += 2;
 		visitedEmpty += 2;
+#endif
+		CRLog::trace("dist: %d cells: %d", dist, oldcells.length());
 		for (int i = 0; i < oldcells.length(); i++) {
+#if	USE_VOLUME_DATA == 1
+			int oldindex = oldcells[i];
+			Vector3d pt = volume->indexToPoint(oldindex);
+#else
 			Vector3d pt = oldcells[i];
+#endif
 			int sx = mySign(pt.x);
 			int sy = mySign(pt.y);
 			int sz = mySign(pt.z);

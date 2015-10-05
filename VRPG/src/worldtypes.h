@@ -729,6 +729,7 @@ public:
 };
 
 #define USE_DIAMOND_VISITOR 1
+#define USE_VOLUME_DATA 0
 
 struct VolumeVisitor {
 	World * world;

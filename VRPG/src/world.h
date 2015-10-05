@@ -149,15 +149,28 @@ struct DiamondVisitor {
 	World * world;
 	Position * position;
 	Vector3d pos0;
+	VolumeData * volume;
 	CellVisitor * visitor;
+#if	USE_VOLUME_DATA == 1
+	IntArray oldcells;
+	IntArray newcells;
+#else
 	CellArray visited;
+	cell_t * visited_ptr;
 	Vector3dArray oldcells;
 	Vector3dArray newcells;
 	unsigned char visitedOccupied;
 	unsigned char visitedEmpty;
+	int m0;
+	int m0mask;
+#endif
 	DiamondVisitor();
-	void init(World * w, Position * pos, CellVisitor * v);
+	void init(World * w, Position * pos, VolumeData * data, CellVisitor * v);
+#if	USE_VOLUME_DATA == 1
+	void visitCell(int index);
+#else
 	void visitCell(Vector3d v);
+#endif
 	void visitAll(int maxDistance);
 };
 
@@ -170,17 +183,19 @@ private:
 	int lastChunkX;
 	int lastChunkZ;
 	Chunk * lastChunk;
-#if USE_DIAMOND_VISITOR==1
-	DiamondVisitor visitorHelper;
-#else
+#if	USE_VOLUME_DATA == 1
 	VolumeData volumeSnapshot;
 	Vector3d volumePos;
 	bool volumeSnapshotInvalid;
+#endif
+#if USE_DIAMOND_VISITOR == 1
+	DiamondVisitor visitorHelper;
+#else
 	VolumeVisitor visitorHelper;
 #endif
 public:
 	World() : maxVisibleRange(MAX_VIEW_DISTANCE), lastChunkX(1000000), lastChunkZ(1000000), lastChunk(NULL)
-#if USE_DIAMOND_VISITOR!=1
+#if	USE_VOLUME_DATA == 1
 		, volumeSnapshot(MAX_VIEW_DISTANCE_BITS), volumeSnapshotInvalid(true)
 #endif
 	{
